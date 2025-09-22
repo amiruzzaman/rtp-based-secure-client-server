@@ -47,6 +47,17 @@ int main(void) {
     if (comm_sock == -1) {
         REPORT_ERRNO("Failed to accept incoming requests");
     }
+
+    struct sockaddr_in peer_addr = {
+        .sin_family = AF_INET,
+        // zero-init the other parts
+    };
+    socklen_t peer_addrlen = sizeof(struct sockaddr_in);
+    if(!getpeername(in_sock, (struct sockaddr*)&peer_addr, &peer_addrlen)) {
+        REPORT_ERRNO("Failed to get peer name");
+    }
+    printf("Connected to peer %s\n", inet_ntoa(peer_addr.sin_addr));
+
     int recv_siz = recv(comm_sock, buffer, sizeof(buffer) - 1, 0);
     buffer[recv_siz] = '\0';
     printf("Received:\n%s\n", buffer);
