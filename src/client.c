@@ -33,8 +33,8 @@ int main(void) {
     send(sock, buffer, sizeof(buffer), 0);
     char msg[16];
 
-    int msglen = recv(sock, msg, sizeof(msg), 0);
-    printf("%.*s\n", msglen, msg);
+    ssize_t msglen = recv(sock, msg, sizeof(msg), 0);
+    printf("%.*s\n", (int)msglen, msg);
 
 defer:
     if (sock > -1) {

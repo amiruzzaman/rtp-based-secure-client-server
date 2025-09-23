@@ -13,7 +13,7 @@ int main(void) {
     struct sockaddr_in in_addr = {
         .sin_family = AF_INET,
         .sin_port = htons(6969),
-        .sin_addr = inet_addr("127.0.0.1"),
+        .sin_addr = {inet_addr("127.0.0.1")},
     };
     char buffer[1024];
 
@@ -28,9 +28,9 @@ int main(void) {
         REPORT_ERRNO("Failed to bind");
     }
 
-    for (int recvlen = recv(sock, buffer, sizeof(buffer), 0); recvlen > 0;
+    for (ssize_t recvlen = recv(sock, buffer, sizeof(buffer), 0); recvlen > 0;
          recvlen = recv(sock, buffer, sizeof(buffer), 0)) {
-        printf("%.*s\n", recvlen, buffer);
+        printf("%.*s\n", (int)recvlen, buffer);
     }
     send(sock, "Bye", sizeof("Bye"), 0);
 
