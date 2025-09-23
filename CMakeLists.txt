@@ -30,8 +30,10 @@ if(NWT_LINK_UBSAN)
 endif()
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     # fuck it, we only support clang and gcc (and apple clang i guess); no MSVC
-    target_compile_options(compile_opts INTERFACE "-Wall;-Wextra;-Wconversion;-Wnull-dereference;-Wformat=2")
+    target_compile_options(compile_opts INTERFACE
+        "-Wall;-Wextra;-Wconversion;-Wnull-dereference;-Wformat=2;-Wno-missing-braces")
 endif()
 
 add_executable(server)
+add_executable(client)
 add_subdirectory(src)
