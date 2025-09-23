@@ -15,12 +15,13 @@ int main(void) {
         .sin_port = htons(6969),
         .sin_addr = inet_addr("127.0.0.1"),
     };
-    char buffer[8192];
-    for(size_t i = 0; i < sizeof(buffer) - 2; ++i) {
-        buffer[i] = 'a';
+    char send_buff[8192];
+    *(uint32_t*)(send_buff + 0) = 8192;
+    for(size_t i = 4; i < sizeof(send_buff) - 2; ++i) {
+        send_buff[i] = 'a';
     }
-    buffer[sizeof(buffer) - 1] = '\n';
-    buffer[sizeof(buffer) - 2] = 'b';
+    send_buff[sizeof(send_buff) - 1] = '\n';
+    send_buff[sizeof(send_buff) - 2] = 'b';
 
     if((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         REPORT_ERRNO("Failed to create socket");
@@ -30,12 +31,7 @@ int main(void) {
         REPORT_ERRNO("Failed to connect socket");
     }
 
-    send(sock, buffer, sizeof(buffer), 0);
-    char msg[16];
-
-    ssize_t msglen = recv(sock, msg, sizeof(msg), 0);
-    printf("%.*s\n", (int)msglen, msg);
-
+    send(sock, send_buff, sizeof(send_buff), 0);
 defer:
     if (sock > -1) {
         close(sock);
