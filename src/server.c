@@ -2,6 +2,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
+// testing if the thing links
+# include <event2/event.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/socket.h>
