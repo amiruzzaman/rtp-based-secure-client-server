@@ -9,58 +9,37 @@
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 int main(void) {
     int ret = 0;
     int sock = -1;
-    struct sockaddr_in in_addr = {
+    struct sockaddr_in client_addr = {0};
+    uint8_t recv_buff[1024];
+    struct sockaddr_in server_addr = {
         .sin_family = AF_INET,
-        .sin_port = htons(6969),
-        .sin_addr = {inet_addr("127.0.0.1")},
+        .sin_port = htons(4200),
+        .sin_addr = INADDR_ANY,
     };
-    uint8_t *recv_buff = NULL;
+    socklen_t client_addr_len = sizeof(client_addr);
 
-    printf(INFO "Creating socket\n");
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock == -1) {
-        REPORT_ERRNO("Failed to create socket");
+    if((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        REPORT_ERRNO("Socket creation failed");
     }
 
-    if (bind(sock, (struct sockaddr *)&in_addr,
-                sizeof(struct sockaddr_in)) < 0) {
-        REPORT_ERRNO("Failed to bind");
-    }
-    
-    uint8_t header[sizeof(uint32_t)/sizeof(uint8_t)];
-    ssize_t recv_size = recv(sock, header, sizeof(header), MSG_PEEK);
-    if(recv_size < (ssize_t)sizeof(header)) {
-        REPORT_ERRNO("Data peeking failed: header size unexpected");
+    if(bind(sock, (struct sockaddr*)&server_addr, sizeof(struct sockaddr_in)) < 0) {
+        REPORT_ERRNO("Socket binding failed");
     }
 
-    // If we just call `recv` without checking packet size, our packet will
-    // get truncated if it's too large.
-    uint32_t packet_size = *(uint32_t*)(header + 0);
-    printf("Expected packet of size %u\n", packet_size);
-
-    recv_buff = (uint8_t*)malloc(packet_size);
-    if(recv_buff == NULL) {
-        REPORT_ERRNO("Malloc failed");
-    }
-    recv_size = recv(sock, recv_buff, packet_size, 0);
-    if(recv_size != packet_size) {
-        REPORT_ERRNO("Truncated or overfilled packet");
-    }
-
-    printf("Received:\n%.*s\n",
-            (int)((size_t)recv_size - sizeof(header)),
-            (recv_buff + sizeof(header)));
+    ssize_t recv_len = recvfrom(sock, recv_buff, sizeof(recv_buff), 0,
+                        (struct sockaddr*)&client_addr, &client_addr_len);
+    printf("Received: %.*s\n", (int)recv_len, recv_buff);
+    printf("Sending back BYE message\n");
+    sendto(sock, "BYE", sizeof("BYE"), 0, (const struct sockaddr*)&client_addr, client_addr_len);
 
 defer:
-    if (sock > -1) {
+    if(sock > -1) {
         close(sock);
-    }
-    if(recv_buff != NULL) {
-        free(recv_buff);
     }
     return ret;
 }

@@ -11,6 +11,16 @@ else()
     target_link_libraries(ld_libs INTERFACE libevent::libevent)
 endif()
 
+add_library(rtp)
+target_sources(rtp
+    PRIVATE
+    rtp.c
+    rtp_util.c
+    PUBLIC
+    rtp.h
+    rtp_util.h
+)
+
 target_sources(server
     PRIVATE
     server.c
@@ -20,6 +30,7 @@ target_link_libraries(server
     PRIVATE
     compile_opts
     # math library
+    rtp
     m
     ld_libs
 )
@@ -33,6 +44,7 @@ target_link_libraries(client
     PRIVATE
     compile_opts
     # math library
+    rtp
     m
     ld_libs
 )
