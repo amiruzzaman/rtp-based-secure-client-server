@@ -6,16 +6,19 @@ project(network-test
 )
 
 include(CMakeDependentOption)
+include(CheckLinkerFlag)
+check_linker_flag(C -fsanitize=address NWT_LINKER_HAS_ASAN)
+check_linker_flag(C -fsanitize=undefined NWT_LINKER_HAS_UBSAN)
 cmake_dependent_option(NWT_LINK_ASAN
     "Whether to link with AddressSanitizer"
     ON
-    "CMAKE_BUILD_TYPE STREQUAL Debug"
+    "CMAKE_BUILD_TYPE STREQUAL Debug;NWT_LINKER_HAS_ASAN"
     OFF
 )
 cmake_dependent_option(NWT_LINK_UBSAN
     "Whether to link with UndefinedBehaviorSanitizer"
     ON
-    "CMAKE_BUILD_TYPE STREQUAL Debug"
+    "CMAKE_BUILD_TYPE STREQUAL Debug;NWT_LINKER_HAS_UBSAN"
     OFF
 )
 
