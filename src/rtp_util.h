@@ -3,9 +3,11 @@
 
 #include <stdlib.h>
 
-// round-up convert bits to bytes
-size_t rtp_util_bits_to_bytes(size_t bits);
-// literally just multiply by 8.
-size_t rtp_util_bytes_to_bits(size_t bytes);
+// sometimes i do miss C++'s constexpr
+#define RTP_UTIL_BITS_TO_BYTES(bits) \
+    (((bits) + 7) / 8)
+
+#define RTP_UTIL_BYTES_TO_BITS(bytes) \
+    ((bytes) * 8)
 
 #endif

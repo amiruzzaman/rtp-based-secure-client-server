@@ -1,6 +1,7 @@
 #ifndef RTP_MOD_RTP_H
 #define RTP_MOD_RTP_H
 
+#include "rtp_util.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -104,15 +105,10 @@ size_t rtp_packet_size(const struct rtp_packet *packet);
  * @warn Do not pass in a null pointer as packet.
  * @return The size filled in.
  *
- * bufflen can be obtained from calling `rtp_packet_size`.
- * If the buffer size is shorter than `rtp_packet_size(packet)`, the packet is
- * truncated.
- * The signature requires buff\[restrict(bufflen + 7)/8\] in order to round-up
- * the division (that is, bufflen is size in bits, but buff is indexed in
- * bytes)
+ * If there's not enough room, nothing is filled in at all, and 0 is returned.
  */
 size_t rtp_packet_serialize(const struct rtp_packet *restrict packet,
                              size_t bufflen,
-                             uint8_t buff[restrict(bufflen + 7) / 8]);
+                             uint8_t buff[RTP_UTIL_BITS_TO_BYTES(bufflen)]);
 
 #endif

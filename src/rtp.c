@@ -14,7 +14,7 @@
 
 static size_t rtp_header_serialize(const struct rtp_header *restrict header,
                                    size_t bufflen,
-                                   uint8_t buff[restrict(bufflen + 7) / 8]);
+                                   uint8_t buff[RTP_UTIL_BITS_TO_BYTES(bufflen)]);
 
 size_t rtp_header_size(const struct rtp_header *header) {
     // 12 octets at least, and then a number of 32-bit CSRCs, and then
@@ -29,10 +29,12 @@ size_t rtp_packet_size(const struct rtp_packet *packet) {
 
 size_t rtp_packet_serialize(const struct rtp_packet *restrict packet,
                             size_t bufflen,
-                            uint8_t buff[restrict(bufflen + 7) / 8]) {
+                            uint8_t buff[RTP_UTIL_BITS_TO_BYTES(bufflen)]) {
+    size_t pack_size = rtp_packet_size(packet);
+    CHECK_BUFF_LEN(bufflen, pack_size);
+
     size_t fill_len = rtp_header_serialize(&packet->header, bufflen, buff);
-    CHECK_BUFF_LEN(fill_len, bufflen);
-    size_t byte_data_len = rtp_util_bits_to_bytes(packet->payload.data_len);
+    size_t byte_data_len = RTP_UTIL_BITS_TO_BYTES(packet->payload.data_len);
 
     size_t memcpy_len = (byte_data_len < fill_len - bufflen)
                             ? byte_data_len
@@ -46,7 +48,7 @@ defer:
 
 static size_t rtp_header_serialize(const struct rtp_header *restrict header,
                                    size_t bufflen,
-                                   uint8_t buff[restrict(bufflen + 7) / 8]) {
+                                   uint8_t buff[RTP_UTIL_BITS_TO_BYTES(bufflen)]) {
     size_t fill_len = 0;
     // first octet
     buff[fill_len] = header->csrc_count + (BOOL_FLAG(header->has_extension) << 4) +
