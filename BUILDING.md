@@ -24,8 +24,8 @@
     already be possible compile features in the compiler.
 
 - What's the TL;DR:
-  - Just use Nix Shell if you want to save the headache.
-  - If you want a bit more headache, use conan.
+  - Dependencies for using Nix Shell: `nix-shell`.
+  - Dependencies for using conan: `conan`, `cmake`, optionally `ninja`
 
 ## Actually building and running the thing
 ### Nix shell
@@ -41,17 +41,24 @@ cmake -DCMAKE_BUILD_TYPE=Debug -B build
 
 cmake --build build
 ./build/server
-# on a different terminal, or tmux session
+# on a different terminal, or tmux window
 ./build/client
 ```
 
 ### Conan
 ```bash
-# if you have never done so, run the line below
+# if you have never done so before, run the line below
 conan profile detect
+# if you use ninja, edit ~/.conan2/profiles/default
+# and add:
+# 
+# [conf]
+# tools.cmake.cmaketoolchain:generator=Ninja
+
 # then,
 conan install . --output-folder=build -s build_type=Debug -b missing
-# then wait, then
+
+# then wait, and then
 source ./build/conanrun.sh
 # now your CMake should be of version 4.x.x
 cmake --version
@@ -59,7 +66,7 @@ cmake --version
 cmake --preset conan-debug
 cmake --build build
 ./build/server
-# on a different terminal, or tmux session
+# on a different terminal, or tmux window
 ./build/client
 ```
 
@@ -81,6 +88,23 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug
 # -DCMAKE_EXPORT_COMPILE_COMMAND=ON
 cmake --build build
 ./build/server
-# on a different terminal, or tmux session
+# on a different terminal, or tmux window
 ./build/client
 ```
+
+## Troubleshooting
+### Trying to use locally installed package after having configured to use conan
+- First, simply try to remove `build/CMakeCache.txt`, and rerun CMake as listed
+  in 
+  [the build guide using system package manager and pkg-config.](#if-all-dependencies-have-been-installed-via-system-package-manager)
+- If the build fails because CMake still finds the package built by conan
+  (whose path is prefixed with `$HOME/.conan2/`), remove
+  `~/.cmake/packages/<package-name>` (Unix) or
+  `HKEY_CURRENT_USER\Software\Kitware\CMake\Packages\<package-name>` (Windows),
+  substituting `<package-name>` with that of the package that's not supposed to be
+  found.
+  - To be more precise, in that path, there are some files whose contents is
+    the path to the library/package/$\dots$. Removing only the file that points
+    to the path with prefix `~/.conan2` is sufficient.
+  - The path just removed is CMake's [user package registry](https://cmake.org/cmake/help/v3.31/manual/cmake-packages.7.html#user-package-registry)
+    feature.
