@@ -18,4 +18,19 @@
 ### RTP header
 - [x] Define the structs.
 - [ ] Some convenience methods.
-  - [ ] Accessors for some non-byte-aligned values.
+  - [ ] How to error-report?
+    - [ ] Make size written a signed value, and return -1?
+    - [ ] Return 0?
+    - [ ] Take in an `err` parameter?
+    - [ ] Serialize a packet into a buffer
+  - [ ] Serialize header
+    - [x] Define the methods
+    - [ ] Test
+
+  - [ ] Serialize the rest of the packet
+    - [ ] Define the methods
+    - [ ] Test
+
+  - [ ] Deserialize a packet from a buffer
+    - [ ] Define the methods
+    - [ ] Test
