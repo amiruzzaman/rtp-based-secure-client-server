@@ -19,6 +19,7 @@ target_sources(rtp
     PUBLIC
     rtp.h
     rtp_util.h
+    rtp_err.h
 )
 target_link_libraries(rtp
     PUBLIC

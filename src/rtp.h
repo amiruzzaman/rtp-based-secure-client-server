@@ -1,7 +1,7 @@
 #ifndef RTP_MOD_RTP_H
 #define RTP_MOD_RTP_H
 
-#include "rtp_util.h"
+#include "rtp_err.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -98,58 +98,78 @@ struct rtp_packet {
 };
 /**
  * @brief Total sie of the packet in bytes
+ * @warn Do not pass in a null pointer for packet.
  */
 size_t rtp_packet_size(const struct rtp_packet *packet);
 /**
  * @brief Serialize the packet into the provided buffer.
- * @warn Do not pass in a null pointer as packet.
- * @return The size filled in, in bytes
+ * @warn Do not pass in a null pointer for packet.
+ * @note It's possible to pass a null pointer as filled_len, but why?
  *
- * If there's not enough room, nothing is filled in at all, and 0 is returned.
+ * If there's not enough room, STATUS_BUFF_TOO_SMALL is returned.
  */
-size_t rtp_packet_serialize(const struct rtp_packet *restrict packet,
-                             size_t bufflen,
-                             uint8_t buff[restrict bufflen]);
+enum rtp_status rtp_packet_serialize(const struct rtp_packet *restrict packet,
+                                     size_t bufflen,
+                                     uint8_t buff[restrict bufflen],
+                                     size_t *filled_len);
 
 /**
- * @warn Might call malloc; `packet->ext.ext` will need to be freed if that's the
- * case. If `header->has_extension` then it needs to be freed.
- * @return The size filled in
- * 
+ * @warn Might call malloc; `packet->ext.ext` will need to be freed if that's
+ * the case. If `header->has_extension` then it needs to be freed.
+ * @warn Do not pass in a null pointer for packet.
+ * @warn It is possible to pass in a null pointer for read_len. But, why?
+ *
  * If `buff` doesn't contain enough data (e.g. not long enough for all the
- * header components), 0 is returned.
+ * header components), STATUS_NOT_ENOUGH_DATA is returned.
  */
-size_t rtp_packet_deserialize(struct rtp_packet *restrict packet,
-                              size_t bufflen,
-                              uint8_t buff[restrict bufflen]);
+enum rtp_status rtp_packet_deserialize(struct rtp_packet *restrict packet,
+                                       size_t packlen,
+                                       uint8_t buff[restrict packlen],
+                                       size_t *read_len);
 
 // If you want fine-grained control of where the packet gets deserialized,
 // assemble the thing using the 4 functions below
 
 /**
  * @brief Deserialize the packet up until the extension header (if any).
+ * @warn Do not pass in a null pointer for header.
+ * @warn It is possible to pass in a null pointer for read_len.
  *
  * This is useful to get information about the size of CSRC list and extension
  * header, so that one can prepare a buffer large enough.
  */
-size_t rtp_header_deserialize_pre_ext(struct rtp_header *restrict header,
-                            size_t bufflen,
-                            const uint8_t buff[restrict bufflen]);
+enum rtp_status rtp_header_deserialize_pre_ext(
+    struct rtp_header *restrict header, size_t bufflen,
+    const uint8_t buff[restrict bufflen], size_t *read_len);
 /**
  * @brief Deserialize the fixed-size header extension.
  * @param trunc_buff truncates the pre-extension part of the header.
  * @warn Check if there's an extension first, `header->has_extension`.
+ * @warn Do not pass in a null pointer for header.
+ * @warn It is possible to pass in a null pointer for read_len.
  */
-size_t rtp_header_deserialize_extension_header(struct rtp_header *restrict header,
-                            size_t bufflen,
-                            const uint8_t trunc_buff[restrict bufflen]);
+enum rtp_status rtp_header_deserialize_extension_header(
+    struct rtp_header *restrict header, size_t bufflen,
+    const uint8_t trunc_buff[restrict bufflen], size_t *read_len);
 /**
  * @brief Deserialize the variable-size header extension data.
  * @param trunc_buff truncates the pre-extension part of the header, and the
  * 4-octet header extension *header*.
  * @warn Check the size of the header extension data, `header->ext.ext_len`.
+ * @warn Do not pass in a null pointer for header.
+ * @warn It is possible to pass in a null pointer for read_len.
  */
-size_t rtp_header_deserialize_extension_data(struct rtp_header *restrict header,
-                            size_t bufflen,
-                            const uint8_t trunc_buff[restrict bufflen]);
+enum rtp_status rtp_header_deserialize_extension_data(
+    struct rtp_header *restrict header, size_t bufflen,
+    const uint8_t trunc_buff[restrict bufflen], size_t *read_len);
+/**
+ * @brief Literally a memcpy from the truncated buffer into the packet payload.
+ * @return Either the program crashes because `packet->payload.data_len` is
+ * too small, or STATUS_OK.
+ *
+ * And some more stuff, like setting packet->payload.data_len.
+ */
+enum rtp_status rtp_packet_deserialize_payload(
+    struct rtp_packet *restrict packet, size_t bufflen,
+    const uint8_t trunc_buff[restrict bufflen], size_t *read_len);
 #endif
