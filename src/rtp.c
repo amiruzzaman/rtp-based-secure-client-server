@@ -198,8 +198,10 @@ enum rtp_status rtp_header_deserialize_pre_ext(
     size_t curr_read_len = 0;
     // read rtp_header_serialize
     {
+        // TODO: check for invalid versions, and return an error.
         uint8_t first_octet = buff[0];
         // get the 4 bits
+        // TODO: check for invalid CSRC count (that is, > 15).
         header->csrc_count = (first_octet & (UINT8_MAX >> 4));
         first_octet >>= 4;
         header->has_extension = (first_octet & 0b1);
@@ -222,16 +224,19 @@ enum rtp_status rtp_header_deserialize_pre_ext(
         ++curr_read_len;
     }
 
-    header->seq_num = *(uint16_t*)(buff + 2);
+    header->seq_num = *(uint16_t *)(buff + 2);
     curr_read_len += 2;
-    header->timestamp = *(uint32_t*)(buff + 4);
+    header->timestamp = *(uint32_t *)(buff + 4);
     curr_read_len += 4;
-    header->ssrc = *(uint32_t*)(buff + 8);
+    header->ssrc = *(uint32_t *)(buff + 8);
     curr_read_len += 4;
 
-    // TODO: deserialize the other octets up until before the first CSRC octet
+    for (uint32_t csrc_idx = 0; csrc_idx < header->csrc_count;
+         ++csrc_idx, curr_read_len += 4) {
+        header->csrcs[csrc_idx] = *(uint32_t *)(buff + curr_read_len);
+    }
 defer:
-    if(read_len != NULL) {
+    if (read_len != NULL) {
         *read_len = curr_read_len;
     }
     return STATUS_OK;
