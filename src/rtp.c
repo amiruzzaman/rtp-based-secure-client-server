@@ -17,10 +17,6 @@
 
 #define REINTERPRET_CAST(type, lvalue) ((type *)(lvalue))
 
-static enum rtp_status
-rtp_header_serialize(const struct rtp_header *restrict header, size_t bufflen,
-                     uint8_t buff[restrict bufflen], size_t *filled_len);
-
 size_t rtp_header_size(const struct rtp_header *header) {
     assert(header != NULL);
     // 12 octets at least, and then a number of 32-bit CSRCs, and then
@@ -65,9 +61,10 @@ defer:
     return ret;
 }
 
-static enum rtp_status
-rtp_header_serialize(const struct rtp_header *restrict header, size_t bufflen,
-                     uint8_t buff[restrict bufflen], size_t *filled_len) {
+enum rtp_status rtp_header_serialize(const struct rtp_header *restrict header,
+                                     size_t bufflen,
+                                     uint8_t buff[restrict bufflen],
+                                     size_t *filled_len) {
     assert(header != NULL);
 
     enum rtp_status ret = STATUS_OK;
@@ -81,11 +78,13 @@ rtp_header_serialize(const struct rtp_header *restrict header, size_t bufflen,
     // 1st octet
     buff[fill_len] =
         (uint8_t)(header->csrc_count + (BOOL_FLAG(header->has_extension) << 4) +
-        (BOOL_FLAG(header->has_padding) << 5) + (header->version << 6));
+                  (BOOL_FLAG(header->has_padding) << 5) +
+                  (header->version << 6));
     ++fill_len;
 
     // 2nd octet
-    buff[fill_len] = (uint8_t)(header->payload_type + (BOOL_FLAG(header->marker) << 7));
+    buff[fill_len] =
+        (uint8_t)(header->payload_type + (BOOL_FLAG(header->marker) << 7));
     ++fill_len;
 
     // 3th and 4th octets, sequence number
@@ -160,12 +159,13 @@ enum rtp_status rtp_packet_deserialize(struct rtp_packet *restrict packet,
         goto defer;
     }
     read_size += buff_idx;
-    packet->payload.data = (uint8_t*)malloc(packlen - read_size);
-    if(packet->payload.data == NULL) {
+    packet->payload.data = (uint8_t *)malloc(packlen - read_size);
+    if (packet->payload.data == NULL) {
         ret = STATUS_MALLOC_FAILED;
         goto defer;
     }
-    rtp_packet_deserialize_payload(packet, packlen - read_size, buff + read_size, &buff_idx);
+    rtp_packet_deserialize_payload(packet, packlen - read_size,
+                                   buff + read_size, &buff_idx);
     read_size += buff_idx;
 
 defer:
@@ -183,8 +183,29 @@ enum rtp_status rtp_packet_deserialize_payload(
     enum rtp_status ret = STATUS_OK;
     memcpy(packet->payload.data, trunc_buff, bufflen);
     packet->payload.data_len = bufflen;
-    if(read_len != NULL) {
+    if (read_len != NULL) {
         *read_len = bufflen;
     }
     return ret;
+}
+
+enum rtp_status rtp_header_deserialize_pre_ext(
+    struct rtp_header *restrict header, size_t bufflen,
+    const uint8_t buff[restrict bufflen], size_t *read_len) {
+    // TODO
+    return STATUS_OK;
+}
+
+enum rtp_status rtp_header_deserialize_extension_header(
+    struct rtp_header *restrict header, size_t bufflen,
+    const uint8_t trunc_buff[restrict bufflen], size_t *read_len) {
+    // TODO
+    return STATUS_OK;
+}
+
+enum rtp_status rtp_header_deserialize_extension_data(
+    struct rtp_header *restrict header, size_t bufflen,
+    const uint8_t trunc_buff[restrict bufflen], size_t *read_len) {
+    // TODO
+    return STATUS_OK;
 }

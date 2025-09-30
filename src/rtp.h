@@ -17,6 +17,9 @@ struct rtp_ext {
 // make the header more readable? Y'know, like separating the first octet into
 // separate fields.
 
+// each CSRC adds in 4 bytes, extension adds (ext_len*4) bytes
+#define RTP_HEADER_MIN_SIZE 12
+
 /**
  * @brief Host byte order RTP header.
  *
@@ -32,6 +35,7 @@ struct rtp_header {
      */
 
     // bit 0, 2-bit
+    // should be 2
     uint8_t version;
     // bit 2, 1-bit
     bool has_padding;
@@ -101,6 +105,18 @@ struct rtp_packet {
  * @warn Do not pass in a null pointer for packet.
  */
 size_t rtp_packet_size(const struct rtp_packet *packet);
+
+/**
+ * @brief Serialize the header into the provided buffer.
+ * @warn Do not pass in a null pointer for header.
+ * @note It's possible to pass a null pointer as filled_len, but why?
+ *
+ * If there's not enough room, STATUS_BUFF_TOO_SMALL is returned.
+ */
+enum rtp_status
+rtp_header_serialize(const struct rtp_header *restrict header, size_t bufflen,
+                     uint8_t buff[restrict bufflen], size_t *filled_len);
+
 /**
  * @brief Serialize the packet into the provided buffer.
  * @warn Do not pass in a null pointer for packet.
