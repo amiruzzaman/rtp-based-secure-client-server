@@ -195,14 +195,17 @@ enum rtp_status rtp_header_deserialize_pre_ext(
     assert(header != NULL);
     assert(bufflen >= RTP_HEADER_MIN_SIZE);
 
+    enum rtp_status ret = STATUS_OK;
     size_t curr_read_len = 0;
     // read rtp_header_serialize
     {
-        // TODO: check for invalid versions, and return an error.
         uint8_t first_octet = buff[0];
         // get the 4 bits
-        // TODO: check for invalid CSRC count (that is, > 15).
         header->csrc_count = (first_octet & (UINT8_MAX >> 4));
+        if(header->csrc_count > 15) {
+            ret = STATUS_DESERIALIZE_CSRC_COUNT_TOO_LARGE;
+            goto defer;
+        }
         first_octet >>= 4;
         header->has_extension = (first_octet & 0b1);
         first_octet >>= 1;
@@ -211,6 +214,10 @@ enum rtp_status rtp_header_deserialize_pre_ext(
         // at this point this only contains the last 2 bits
         assert((first_octet & 0b11111100) == 0);
         header->version = first_octet;
+        if(header->version > 2) {
+            ret = STATUS_DESERIALIZE_VERSION_TOO_LARGE;
+            goto defer;
+        }
         ++curr_read_len;
     }
 
@@ -239,7 +246,7 @@ defer:
     if (read_len != NULL) {
         *read_len = curr_read_len;
     }
-    return STATUS_OK;
+    return ret;
 }
 
 enum rtp_status rtp_header_deserialize_extension_header(
