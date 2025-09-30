@@ -192,7 +192,48 @@ enum rtp_status rtp_packet_deserialize_payload(
 enum rtp_status rtp_header_deserialize_pre_ext(
     struct rtp_header *restrict header, size_t bufflen,
     const uint8_t buff[restrict bufflen], size_t *read_len) {
-    // TODO
+    assert(header != NULL);
+    assert(bufflen >= RTP_HEADER_MIN_SIZE);
+
+    size_t curr_read_len = 0;
+    // read rtp_header_serialize
+    {
+        uint8_t first_octet = buff[0];
+        // get the 4 bits
+        header->csrc_count = (first_octet & (UINT8_MAX >> 4));
+        first_octet >>= 4;
+        header->has_extension = (first_octet & 0b1);
+        first_octet >>= 1;
+        header->has_padding = (first_octet & 0b1);
+        first_octet >>= 1;
+        // at this point this only contains the last 2 bits
+        assert((first_octet & 0b11111100) == 0);
+        header->version = first_octet;
+        ++curr_read_len;
+    }
+
+    {
+        uint8_t second_octet = buff[1];
+        header->payload_type = (second_octet & (UINT8_MAX >> 1));
+        second_octet >>= 7;
+        // at this point this only contains the last bit
+        assert((second_octet & UINT8_MAX << 1) == 0);
+        header->marker = second_octet;
+        ++curr_read_len;
+    }
+
+    header->seq_num = *(uint16_t*)(buff + 2);
+    curr_read_len += 2;
+    header->timestamp = *(uint32_t*)(buff + 4);
+    curr_read_len += 4;
+    header->ssrc = *(uint32_t*)(buff + 8);
+    curr_read_len += 4;
+
+    // TODO: deserialize the other octets up until before the first CSRC octet
+defer:
+    if(read_len != NULL) {
+        *read_len = curr_read_len;
+    }
     return STATUS_OK;
 }
 

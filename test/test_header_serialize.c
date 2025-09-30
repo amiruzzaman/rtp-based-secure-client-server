@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -35,6 +36,30 @@ int main(void) {
         &minimal_test_header, sizeof(header_buff), header_buff, &fill_len);
     assert(rc == STATUS_OK);
     assert(fill_len == RTP_HEADER_MIN_SIZE);
+
+    struct rtp_header minimal_deserialize_header = {};
+    size_t read_len = 0;
+    // TODO: this function down here
+    rc = rtp_header_deserialize_pre_ext(&minimal_deserialize_header, fill_len,
+                                        header_buff, &read_len);
+    assert(rc == STATUS_OK);
+    assert(read_len == RTP_HEADER_MIN_SIZE);
+
+    // printf("deserialize.version = %d\n", minimal_deserialize_header.version);
+    // first octet
+    assert(minimal_deserialize_header.version == 2);
+    assert(!minimal_deserialize_header.has_padding);
+    assert(!minimal_deserialize_header.has_extension);
+    assert(minimal_deserialize_header.csrc_count == 0);
+
+    // second octet
+    assert(!minimal_deserialize_header.marker);
+    assert(minimal_deserialize_header.payload_type == 69);
+
+    // the other information
+    assert(minimal_deserialize_header.seq_num == 420);
+    assert(minimal_deserialize_header.timestamp == clk);
+    assert(minimal_deserialize_header.ssrc == ssrc_rand);
 
     return 0;
 }
