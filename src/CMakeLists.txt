@@ -20,6 +20,17 @@ target_sources(rtp
     rtp.h
     rtp_util.h
 )
+target_link_libraries(rtp
+    PUBLIC
+    compile_opts
+    m
+    ld_libs
+)
+target_include_directories(rtp
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_DIR}/include>
+)
 
 target_sources(server
     PRIVATE
