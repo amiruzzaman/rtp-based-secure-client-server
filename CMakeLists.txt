@@ -7,6 +7,7 @@ project(network-test
 
 include(CMakeDependentOption)
 include(CheckLinkerFlag)
+include(CTest)
 
 check_linker_flag(C -fsanitize=address RTP_MOD_LINKER_HAS_ASAN)
 check_linker_flag(C -fsanitize=undefined RTP_MOD_LINKER_HAS_UBSAN)
@@ -22,6 +23,7 @@ cmake_dependent_option(RTP_MOD_LINK_UBSAN
     "CMAKE_BUILD_TYPE STREQUAL Debug;RTP_MOD_LINKER_HAS_UBSAN"
     OFF
 )
+option(BUILD_TESTING "Whether to build the tests" OFF)
 
 add_library(compile_opts INTERFACE)
 if(NWT_LINK_ASAN)
@@ -41,3 +43,6 @@ endif()
 add_executable(server)
 add_executable(client)
 add_subdirectory(src)
+if(BUILD_TESTING)
+    add_subdirectory(test)
+endif()
