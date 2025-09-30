@@ -21,6 +21,8 @@
   - [ ] How to error-report?
     - [ ] Make size written a signed value, and return -1?
     - [ ] Return 0?
+    - [ ] Return size read via a parameter, and error via return value?
+      - [ ] With a status enum.
     - [ ] Take in an `err` parameter?
     - [ ] Serialize a packet into a buffer
   - [ ] Serialize header
