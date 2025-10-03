@@ -5,14 +5,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-// requires a defer tag and a `enum rtp_status ret;`
-#define CHECK_BUFF_LEN(curr_idx, max_siz)                                      \
-    do {                                                                       \
-        if (curr_idx >= max_siz) {                                             \
-            ret = STATUS_BUFF_TOO_SMALL;                                       \
-            goto defer;                                                        \
-        }                                                                      \
-    } while (0)
 #define BOOL_FLAG(bool_val) ((bool_val) ? 1 : 0)
 
 #define REINTERPRET_CAST(type, lvalue) ((type *)(lvalue))
@@ -180,6 +172,9 @@ enum rtp_status rtp_packet_deserialize_payload(
     const uint8_t trunc_buff[restrict bufflen], size_t *read_len) {
     assert(packet != NULL);
 
+    // TODO: if there's padding, read the last octet to determine the size of
+    // padding
+
     enum rtp_status ret = STATUS_OK;
     memcpy(packet->payload.data, trunc_buff, bufflen);
     packet->payload.data_len = bufflen;
@@ -193,16 +188,20 @@ enum rtp_status rtp_header_deserialize_pre_ext(
     struct rtp_header *restrict header, size_t bufflen,
     const uint8_t buff[restrict bufflen], size_t *read_len) {
     assert(header != NULL);
-    assert(bufflen >= RTP_HEADER_MIN_SIZE);
+    // assert(bufflen >= RTP_HEADER_MIN_SIZE);
 
     enum rtp_status ret = STATUS_OK;
+    if (bufflen < RTP_HEADER_MIN_SIZE) {
+        ret = STATUS_BUFF_TOO_SMALL;
+        goto defer;
+    }
     size_t curr_read_len = 0;
     // read rtp_header_serialize
     {
         uint8_t first_octet = buff[0];
         // get the 4 bits
         header->csrc_count = (first_octet & (UINT8_MAX >> 4));
-        if(header->csrc_count > 15) {
+        if (header->csrc_count > 15) {
             ret = STATUS_DESERIALIZE_CSRC_COUNT_TOO_LARGE;
             goto defer;
         }
@@ -214,7 +213,7 @@ enum rtp_status rtp_header_deserialize_pre_ext(
         // at this point this only contains the last 2 bits
         assert((first_octet & 0b11111100) == 0);
         header->version = first_octet;
-        if(header->version > 2) {
+        if (header->version > 2) {
             ret = STATUS_DESERIALIZE_VERSION_TOO_LARGE;
             goto defer;
         }
@@ -252,8 +251,25 @@ defer:
 enum rtp_status rtp_header_deserialize_extension_header(
     struct rtp_header *restrict header, size_t bufflen,
     const uint8_t trunc_buff[restrict bufflen], size_t *read_len) {
+    assert(header != NULL);
+
+    enum rtp_status ret = STATUS_OK;
+    if (bufflen < RTP_HEADER_EXT_HEADER_SIZE) {
+        ret = STATUS_BUFF_TOO_SMALL;
+        goto defer;
+    }
+    size_t curr_idx = 0;
+    header->ext.profile_id = *(uint16_t *)(trunc_buff);
+    curr_idx += 2;
+    header->ext.ext_len = *(uint16_t *)(trunc_buff + 2);
+    curr_idx += 2;
+
     // TODO
-    return STATUS_OK;
+defer:
+    if (read_len != NULL) {
+        *read_len = curr_idx;
+    }
+    return ret;
 }
 
 enum rtp_status rtp_header_deserialize_extension_data(

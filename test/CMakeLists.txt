@@ -1,6 +1,6 @@
 # TODO: build tests
 
-macro(add_test_executable target)
+function(add_test_executable target)
     add_executable(${target})
     target_sources(${target}
         PRIVATE
@@ -11,6 +11,11 @@ macro(add_test_executable target)
         compile_opts
         rtp
     )
-endmacro()
+    string(TOUPPER ${target} target_upper)
+    add_test(NAME ${target_upper}
+        COMMAND ${target}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+endfunction()
 
 add_test_executable(test_header_serialize)

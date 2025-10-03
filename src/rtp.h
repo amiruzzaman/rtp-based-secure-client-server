@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
+// each CSRC adds in 4 bytes, extension adds (ext_len*4) bytes
+#define RTP_HEADER_MIN_SIZE 12
+#define RTP_HEADER_EXT_HEADER_SIZE 4
+
 struct rtp_ext {
     uint16_t profile_id;
     // length in 4-octet words, including the 4-octet extension header
@@ -16,9 +20,6 @@ struct rtp_ext {
 // TODO: since we have to serialize the packet before sending anyways, why not
 // make the header more readable? Y'know, like separating the first octet into
 // separate fields.
-
-// each CSRC adds in 4 bytes, extension adds (ext_len*4) bytes
-#define RTP_HEADER_MIN_SIZE 12
 
 /**
  * @brief Host byte order RTP header.
