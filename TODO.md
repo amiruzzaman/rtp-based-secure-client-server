@@ -25,10 +25,10 @@
     - [x] Define the methods
     - [x] Test
 
-  - [ ] Serialize the rest of the packet
-    - [ ] Define the methods
-    - [ ] Test
+  - [x] Serialize the rest of the packet
+    - [x] Define the methods
+    - [x] Test
 
-  - [ ] Deserialize a packet from a buffer
-    - [ ] Define the methods
-    - [ ] Test
+  - [x] Deserialize a packet from a buffer
+    - [x] Define the methods
+    - [x] Test
