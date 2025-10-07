@@ -14,7 +14,9 @@ size_t rtp_header_size(const struct rtp_header *header) {
     // 12 octets at least, and then a number of 32-bit CSRCs, and then
     // optionally the extension.
     return 12 + header->csrc_count * 4 +
-           ((header->has_extension) ? header->ext.ext_len * 4 : 0);
+           // 16-bit profile id, 16-bit extension length, then 4 * 32-bit
+           // extension bytes
+           ((header->has_extension) ? (1 + header->ext.ext_len) * 4 : 0);
 }
 
 size_t rtp_packet_size(const struct rtp_packet *packet) {
@@ -105,11 +107,8 @@ enum rtp_status rtp_header_serialize(const struct rtp_header *restrict header,
         *REINTERPRET_CAST(uint16_t, buff + fill_len) = header->ext.ext_len;
         fill_len += sizeof(uint16_t);
         // fill in the extension
-        for (size_t ext_idx = 0; ext_idx < header->ext.ext_len - 1;
-             ++ext_idx, fill_len += 4) {
-            *REINTERPRET_CAST(uint32_t, buff + fill_len) =
-                header->ext.ext[ext_idx];
-        }
+        memcpy(buff + fill_len, header->ext.ext, 4 * header->ext.ext_len);
+        fill_len += 4 * header->ext.ext_len;
     }
 
 defer:
@@ -264,7 +263,6 @@ enum rtp_status rtp_header_deserialize_extension_header(
     header->ext.ext_len = *(uint16_t *)(trunc_buff + 2);
     curr_idx += 2;
 
-    // TODO
 defer:
     if (read_len != NULL) {
         *read_len = curr_idx;
@@ -275,6 +273,22 @@ defer:
 enum rtp_status rtp_header_deserialize_extension_data(
     struct rtp_header *restrict header, size_t bufflen,
     const uint8_t trunc_buff[restrict bufflen], size_t *read_len) {
-    // TODO
-    return STATUS_OK;
+    assert(header != NULL);
+    assert(header->ext.ext != NULL);
+    assert(trunc_buff != NULL);
+
+    enum rtp_status ret = STATUS_OK;
+
+    if (header->ext.ext_len * 4 > bufflen) {
+        ret = STATUS_BUFF_TOO_SMALL;
+        goto defer;
+    }
+
+    memcpy(header->ext.ext, trunc_buff, 4 * header->ext.ext_len);
+
+defer:
+    if (read_len != NULL) {
+        *read_len = 4 * header->ext.ext_len;
+    }
+    return ret;
 }

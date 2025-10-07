@@ -139,19 +139,21 @@ void test_header_with_ext(void) {
                 .ext = (uint32_t[]){1, 2, 3, 4},
             },
     };
-    assert(rtp_header_size(&test_header) == RTP_HEADER_MIN_SIZE + 4 * 4);
-    uint8_t buff[RTP_HEADER_MIN_SIZE + 4 * 4];
+    // 4 * 4 since we have 4 extension values, 1 more 32-bit octet because
+    // profile_id and ext_len both are 16-bit values.
+    assert(rtp_header_size(&test_header) == RTP_HEADER_MIN_SIZE + 5 * 4);
+    uint8_t buff[RTP_HEADER_MIN_SIZE + 5 * 4];
     size_t fill_len = 0;
     enum rtp_status rc = rtp_header_serialize(
-        &test_header, RTP_HEADER_MIN_SIZE + 4 * 4, buff, &fill_len);
+        &test_header, RTP_HEADER_MIN_SIZE + 5 * 4, buff, &fill_len);
     assert(rc == STATUS_OK);
-    assert(fill_len == RTP_HEADER_MIN_SIZE + 4 * 4);
+    assert(fill_len == RTP_HEADER_MIN_SIZE + 5 * 4);
 
     struct rtp_header deserialize_header = {};
     size_t read_len = 0;
     // this function does not read in the extension yet
     rc = rtp_header_deserialize_pre_ext(
-        &deserialize_header, RTP_HEADER_MIN_SIZE + 4 * 4, buff, &read_len);
+        &deserialize_header, RTP_HEADER_MIN_SIZE + 5 * 4, buff, &read_len);
     assert(rc == STATUS_OK);
     assert(read_len == RTP_HEADER_MIN_SIZE);
 
@@ -164,7 +166,15 @@ void test_header_with_ext(void) {
 
     assert(deserialize_header.ext.profile_id == 69);
     assert(deserialize_header.ext.ext_len == 4);
-    // TODO: deserialize the extension data
+
+    deserialize_header.ext.ext = (uint32_t[4]){};
+    trunc_buff += read_len;
+    rtp_header_deserialize_extension_data(&deserialize_header, 4 * 4,
+                                          trunc_buff, &read_len);
+    assert(deserialize_header.ext.ext[0] == 1);
+    assert(deserialize_header.ext.ext[1] == 2);
+    assert(deserialize_header.ext.ext[2] == 3);
+    assert(deserialize_header.ext.ext[3] == 4);
 }
 
 int main(void) {
