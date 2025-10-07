@@ -174,8 +174,7 @@ enum rtp_status rtp_packet_deserialize_payload(
     const uint8_t trunc_buff[restrict bufflen], size_t *read_len) {
     assert(packet != NULL);
 
-    // TODO: if there's padding, read the last octet to determine the size of
-    // padding
+    // just let the user get the padding size themselves ehe
 
     enum rtp_status ret = STATUS_OK;
     memcpy(packet->payload.data, trunc_buff, bufflen);

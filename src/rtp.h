@@ -95,6 +95,9 @@ size_t rtp_header_size(const struct rtp_header *header);
 struct rtp_payload {
     // data length in bytes
     size_t data_len;
+    // data including padding if present.
+    // If there's padding, the very last octet (that is, data[data_len - 1])
+    // should be the size of the padding (including that octet).
     uint8_t *data;
 };
 struct rtp_packet {
