@@ -229,17 +229,15 @@ enum rtp_status rtp_header_deserialize_pre_ext(
         ++curr_read_len;
     }
 
-    header->seq_num = *(uint16_t *)(buff + 2);
+    header->seq_num = *REINTERPRET_CAST(uint16_t, buff + 2);
     curr_read_len += 2;
-    header->timestamp = *(uint32_t *)(buff + 4);
+    header->timestamp = *REINTERPRET_CAST(uint32_t, buff + 4);
     curr_read_len += 4;
-    header->ssrc = *(uint32_t *)(buff + 8);
+    header->ssrc = *REINTERPRET_CAST(uint32_t, buff + 8);
     curr_read_len += 4;
 
-    for (uint32_t csrc_idx = 0; csrc_idx < header->csrc_count;
-         ++csrc_idx, curr_read_len += 4) {
-        header->csrcs[csrc_idx] = *(uint32_t *)(buff + curr_read_len);
-    }
+    memcpy(header->csrcs, buff + curr_read_len, header->csrc_count * 4);
+    curr_read_len += header->csrc_count * 4;
 defer:
     if (read_len != NULL) {
         *read_len = curr_read_len;
@@ -258,9 +256,9 @@ enum rtp_status rtp_header_deserialize_extension_header(
         goto defer;
     }
     size_t curr_idx = 0;
-    header->ext.profile_id = *(uint16_t *)(trunc_buff);
+    header->ext.profile_id = *REINTERPRET_CAST(uint16_t, trunc_buff);
     curr_idx += 2;
-    header->ext.ext_len = *(uint16_t *)(trunc_buff + 2);
+    header->ext.ext_len = *REINTERPRET_CAST(uint16_t, trunc_buff + 2);
     curr_idx += 2;
 
 defer:
