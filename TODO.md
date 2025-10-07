@@ -18,16 +18,16 @@
 ### RTP header
 - [x] Define the structs.
 - [ ] Some convenience methods.
-  - [ ] How to error-report?
+  - [x] How to error-report?
     - [ ] Make size written a signed value, and return -1?
     - [ ] Return 0?
-    - [ ] Return size read via a parameter, and error via return value?
-      - [ ] With a status enum.
+    - [x] Return size read via a parameter, and error via return value?
+      - [x] With a status enum.
     - [ ] Take in an `err` parameter?
     - [ ] Serialize a packet into a buffer
-  - [ ] Serialize header
+  - [x] Serialize header
     - [x] Define the methods
-    - [ ] Test
+    - [x] Test
 
   - [ ] Serialize the rest of the packet
     - [ ] Define the methods
