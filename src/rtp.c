@@ -137,19 +137,22 @@ enum rtp_status rtp_packet_deserialize(struct rtp_packet *restrict packet,
     }
     read_size += buff_idx;
 
-    ret = rtp_header_deserialize_extension_header(
-        &packet->header, packlen - read_size, buff + read_size, &buff_idx);
-    if (ret != STATUS_OK) {
-        goto defer;
-    }
-    read_size += buff_idx;
+    if(packet->header.has_extension) {
+        ret = rtp_header_deserialize_extension_header(
+            &packet->header, packlen - read_size, buff + read_size, &buff_idx);
+        if (ret != STATUS_OK) {
+            goto defer;
+        }
+        read_size += buff_idx;
 
-    ret = rtp_header_deserialize_extension_data(
-        &packet->header, packlen - read_size, buff + read_size, &buff_idx);
-    if (ret != STATUS_OK) {
-        goto defer;
+        ret = rtp_header_deserialize_extension_data(
+            &packet->header, packlen - read_size, buff + read_size, &buff_idx);
+        if (ret != STATUS_OK) {
+            goto defer;
+        }
+        read_size += buff_idx;
     }
-    read_size += buff_idx;
+
     packet->payload.data = (uint8_t *)malloc(packlen - read_size);
     if (packet->payload.data == NULL) {
         ret = STATUS_MALLOC_FAILED;
@@ -161,7 +164,7 @@ enum rtp_status rtp_packet_deserialize(struct rtp_packet *restrict packet,
 
 defer:
     if (read_len != NULL) {
-        *read_len = buff_idx;
+        *read_len = read_size;
     }
     return ret;
 }

@@ -177,9 +177,61 @@ void test_header_with_ext(void) {
     assert(deserialize_header.ext.ext[3] == 4);
 }
 
+void test_whole_packet_no_padding(void) {
+    uint32_t clk = (uint32_t)clock();
+    uint32_t ssrc_rand = arc4random_uniform(UINT32_MAX / 4);
+    struct rtp_packet test_packet = {
+        .header =
+            {
+                .version = 2,
+                .has_padding = false,
+                .has_extension = false,
+                .csrc_count = 0,
+                .marker = false,
+                .payload_type = 69,
+                .seq_num = 420,
+                .timestamp = clk,
+                .ssrc = ssrc_rand,
+                .csrcs = {},
+                .ext = {},
+            },
+        .payload =
+            {
+                .data_len = 5,
+                .data = (uint8_t[5]){1, 2, 3, 4, 5},
+            },
+    };
+    assert(rtp_packet_size(&test_packet) == RTP_HEADER_MIN_SIZE + 5);
+    uint8_t buff[RTP_HEADER_MIN_SIZE + 5];
+    size_t fill_len = 0;
+    enum rtp_status rc = rtp_packet_serialize(
+        &test_packet, RTP_HEADER_MIN_SIZE + 5, buff, &fill_len);
+    assert(rc == STATUS_OK);
+    assert(fill_len == RTP_HEADER_MIN_SIZE + 5);
+
+    struct rtp_packet deserialize_packet = {};
+    size_t read_len = 0;
+    rc = rtp_packet_deserialize(&deserialize_packet, fill_len, buff, &read_len);
+    // these will cause asan to complain if they fail
+    assert(rc == STATUS_OK);
+    assert(read_len == fill_len);
+
+    // from the tests before this one, we can (somewhat) guarantee that the
+    // header is deserialized correctly
+    assert(deserialize_packet.payload.data_len == 5);
+    assert(deserialize_packet.payload.data[0] == 1);
+    assert(deserialize_packet.payload.data[1] == 2);
+    assert(deserialize_packet.payload.data[2] == 3);
+    assert(deserialize_packet.payload.data[3] == 4);
+    assert(deserialize_packet.payload.data[3] == 4);
+    assert(deserialize_packet.payload.data[4] == 5);
+}
+
 int main(void) {
     test_minimal_header();
     test_header_with_csrc();
     test_header_with_ext();
+    test_whole_packet_no_padding();
+
     return 0;
 }
