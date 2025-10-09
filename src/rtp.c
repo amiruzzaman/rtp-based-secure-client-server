@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
 #define BOOL_FLAG(bool_val) ((bool_val) ? 1 : 0)
 
