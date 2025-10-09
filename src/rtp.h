@@ -37,13 +37,13 @@ struct rtp_header {
 
     // bit 0, 2-bit
     // should be 2
-    uint8_t version;
+    uint8_t version : 2;
     // bit 2, 1-bit
-    bool has_padding;
+    bool has_padding : 1;
     // bit 3, 1-bit
-    bool has_extension;
+    bool has_extension : 1;
     // bit 4, 4-bit
-    uint8_t csrc_count;
+    uint8_t csrc_count : 4;
 
     /**
      * @brief Bit 8 to 15
@@ -52,9 +52,9 @@ struct rtp_header {
      */
 
     // bit 8, 1-bit
-    bool marker;
+    bool marker : 1;
     // bit 9, 7-bit
-    uint8_t payload_type;
+    uint8_t payload_type : 7;
 
     /**
      * @brief Bit 16 to 31

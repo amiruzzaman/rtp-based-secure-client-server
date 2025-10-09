@@ -199,6 +199,9 @@ enum rtp_status rtp_header_deserialize_pre_ext(
     size_t curr_read_len = 0;
     // read rtp_header_serialize
     {
+        // while we do specify the bit-sizes of the struct, it's not guaranteed
+        // that the struct is packed.
+        // https://en.cppreference.com/w/c/language/bit_field.html
         uint8_t first_octet = buff[0];
         // get the 4 bits
         header->csrc_count = (first_octet & (UINT8_MAX >> 4));
