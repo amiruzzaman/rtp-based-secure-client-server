@@ -11,9 +11,10 @@
 # ``libevent::core``
 # ``libevent::extra``
 # ``libevent::openssl``
-# ``libevent::pthread`` (if not on Windows)
+# ``libevent::pthreads`` (if not on Windows)
 
 # mostly copy from CMake's shipped FindSQLite3 module
+# TODO: do we support static linking?
 
 function(__find_libevent_create_import_target _target _import_loc)
     if(NOT TARGET ${_target})
@@ -76,8 +77,16 @@ if(Libevent_INCLUDE_DIR)
 endif()
 
 include(FindPackageHandleStandardArgs)
+# NOTE: the libevent book says that one day, the libevent one might be nuked
+# but the "component" libraries (core, extra, openssl, pthread) should still be
+# around
+# also openssl and pthreads are not always present (aka, platform dependent)
 find_package_handle_standard_args(Libevent
-    REQUIRED_VARS Libevent_LIBRARY Libevent_core_LIBRARY Libevent_INCLUDE_DIR
+    REQUIRED_VARS
+    Libevent_LIBRARY
+    Libevent_core_LIBRARY
+    Libevent_extra_LIBRARY
+    Libevent_INCLUDE_DIR
     VERSION_VAR Libevent_VERSION)
 
 # import target
