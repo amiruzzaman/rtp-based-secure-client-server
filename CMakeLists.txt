@@ -9,6 +9,8 @@ include(CMakeDependentOption)
 include(CheckLinkerFlag)
 include(CTest)
 
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
+
 check_linker_flag(C -fsanitize=address RTP_MOD_LINKER_HAS_ASAN)
 check_linker_flag(C -fsanitize=undefined RTP_MOD_LINKER_HAS_UBSAN)
 cmake_dependent_option(RTP_MOD_LINK_ASAN
