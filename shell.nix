@@ -2,7 +2,7 @@
     with pkgs; pkgs.mkShell {
         name = "soydev-tools-0.0.1";
         nativeBuildInputs = [
-            pkgconf 
+            # pkgconf 
         ];
         buildInputs = with pkgs; [
             libevent
