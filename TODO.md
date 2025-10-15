@@ -32,3 +32,12 @@
   - [x] Deserialize a packet from a buffer
     - [x] Define the methods
     - [x] Test
+
+## UDP server with libevent
+- [x] Event loop.
+- [ ] Signal handling to shut down more gracefully.
+- [ ] When `recvfrom` a client, create a new socket that's bound to said
+  client's address and dump data there. We will save a `struct` containing the
+  event handler, the socket and more information if needed.
+  - [ ] We can save this in a global (or at least thread-local) buffer
+    (that should be dynamically growing also).

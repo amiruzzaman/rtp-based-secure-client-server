@@ -1,10 +1,12 @@
 #include "log.h"
 #include <arpa/inet.h>
+#include <assert.h>
 #include <errno.h>
 #include <event2/event.h>
 #include <event2/thread.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,32 +14,37 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define READ_BUFF_LEN 1024
+#define READ_BUFF_LEN 1400
 
+struct read_event_arguments {
+    struct event *self;
+    struct sockaddr *recv_addr;
+    socklen_t recv_addr_len;
+    evutil_socket_t socket;
+    size_t timeout_cnt;
+    char read_buff[READ_BUFF_LEN];
+};
 static void read_callback(evutil_socket_t sock, short what, void *arg);
-static int create_ipv4_socket(int* sock, struct addrinfo *info);
 
 int main(void) {
     int ret = 0;
-    int sock = -1;
+    evutil_socket_t sock = -1;
     struct event_base *base = NULL;
     struct event *read_event = NULL;
-    char read_buff[READ_BUFF_LEN];
+    struct sockaddr_in6 recv_addr = {
+        .sin6_family = AF_INET6,
+    };
+    struct read_event_arguments read_args = {
+        .recv_addr = &recv_addr,
+    };
     const struct addrinfo hints = {
         .ai_flags = AI_PASSIVE,
-        // make everyone suffer
-        .ai_family = PF_UNSPEC,
+        .ai_family = AF_INET6,
         .ai_socktype = SOCK_DGRAM,
         .ai_next = NULL,
     };
     struct addrinfo *server_info = NULL;
 
-    // initialize socket
-    // if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-    //     ret = sock;
-    //     REPORT_ERRNO("Socket creation failed");
-    // }
-    // evutil_make_socket_nonblocking(sock);
     if ((ret = getaddrinfo(NULL, "4200", &hints, &server_info)) != 0) {
         fprintf(stderr, ERROR "getaddrinfo: %s\n", gai_strerror(ret));
         goto defer;
@@ -45,31 +52,42 @@ int main(void) {
     // get first server address available to bind, and bind
     for (struct addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
         // handle both ipv4 and ipv6
+        // TODO: we explicitly request only IPv6, so no need for a lot of these
+        // complicated logics.
         struct sockaddr_storage *addr = (struct sockaddr_storage *)pa->ai_addr;
-        size_t addr_size = sizeof(struct sockaddr_storage);
-        char ip_str[INET6_ADDRSTRLEN];
-        if((sock = socket(addr->sin_family, SOCK_DGRAM, 0)) < 0) {
-            ret = -1;
-            printf(INFO "Socket creation failed, retrying\n");
+        socklen_t addr_size = sizeof(struct sockaddr_in6);
+        if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+            perror(INFO "Retrying socket creation");
             continue;
         }
-        ret = 0;
-        if ((ret = bind(sock, (const struct sockaddr *)addr,
-                        sizeof(struct sockaddr_in))) != 0) {
-            perror(INFO "Bind failed for address ");
-            printf("%s port %d\n",
-                   inet_ntop(addr->sin_family, (void *)&addr->sin_addr, ip_str,
-                             sizeof(struct sockaddr_in)),
-                   ntohs(addr->sin_port));
+        // IPv4-mapped IPv6
+        {
+            int nope = 0;
+            if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &nope,
+                           sizeof(int)) != 0) {
+                perror(INFO "Set socket option error, retrying");
+                continue;
+            }
+        }
+        if ((ret = bind(sock, (struct sockaddr *)addr, addr_size)) != 0) {
+            perror(INFO "Retrying socket creation");
+            close(sock);
             continue;
         }
-        printf(INFO "Bind to %s port %d\n",
-               inet_ntop(addr->sin_family, (void *)&addr->sin_addr, ip_str,
-                         sizeof(struct sockaddr_in)),
-               ntohs(addr->sin_port));
+        // TODO: report bind address
+        char addr_str[INET6_ADDRSTRLEN];
+        void *in_addr = &(((struct sockaddr_in6 *)addr)->sin6_addr);
+        inet_ntop(AF_INET6, in_addr, addr_str, INET6_ADDRSTRLEN);
+        printf(INFO "Bind socket to address %s\n", addr_str);
+        read_args.socket = sock;
         break;
     }
-    if(ret != 0) {
+
+    // if error occurs
+    if (sock < 0) {
+        REPORT_ERRNO("socket");
+    }
+    if (ret != 0) {
         REPORT_ERRNO("bind");
     }
 
@@ -80,12 +98,21 @@ int main(void) {
         fprintf(stderr, ERROR "Event base creation error\n");
         goto defer;
     }
-    read_event = event_new(base, sock, EV_READ, read_callback, read_buff);
+    // TODO: install a signal handler or some `atexit` functions to clean up
+    // resources.
+    read_event =
+        event_new(base, sock, EV_READ | EV_PERSIST, read_callback, &read_args);
+
+    read_args.self = read_event;
     // no timeout
     event_add(read_event, NULL);
-    event_base_loop(base, EVLOOP_NONBLOCK);
+    // TODO: flip back to event_base_loop when we have to do more than just
+    // receiving packages.
+    event_base_dispatch(base);
+    // event_base_loop(base, EVLOOP_NONBLOCK);
 
 defer:
+    printf(INFO "Shutdown server\n");
     if (server_info) {
         freeaddrinfo(server_info);
     }
@@ -103,10 +130,11 @@ defer:
 }
 
 static void read_callback(evutil_socket_t sock, short what, void *arg) {
-    printf("I READ SOMETHING!!!\n");
-}
-
-static int create_ipv4_socket(int* sock, struct addrinfo *info) {
-    assert(info->ai_family == AF_INET);
-    return 69;
+    struct read_event_arguments *read_args = (struct read_event_arguments *)arg;
+    assert(read_args != NULL);
+    ssize_t msglen = recvfrom(read_args->socket, read_args->read_buff,
+                          sizeof(read_args->read_buff), 0, read_args->recv_addr,
+                          &(read_args->recv_addr_len));
+    // TODO: we can create another socket here and `bind`.
+    printf(INFO "Received %.*s", (int)msglen, read_args->read_buff);
 }
