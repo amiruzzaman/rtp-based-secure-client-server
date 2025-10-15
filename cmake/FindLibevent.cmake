@@ -67,8 +67,8 @@ if(Libevent_INCLUDE_DIR)
         set(Libevent_VERSION ${PC_Libevent_VERSION})
     else()
         # and the hard way
-        file(STRINGS ${Libevent_INCLUDE_DIR}/event-config.h __ver_line
-             REGEX "^#define EVENT__PACKAGE_VERSION *\"[0-9]+\\.[0-9]+\\.[0-9]+\""
+        file(STRINGS ${Libevent_INCLUDE_DIR}/event2/event-config.h __ver_line
+             REGEX "^#define EVENT__VERSION *\"[0-9]+\\.[0-9]+\\.[0-9]+.*\""
              LIMIT_COUNT 1)
         string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+"
                Libevent_VERSION "${__ver_line}")
