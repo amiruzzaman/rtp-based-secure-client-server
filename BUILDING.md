@@ -91,20 +91,3 @@ cmake -B build
 # -DCMAKE_PREFIX_PATH="non-standard/path/to/pc/file/of/libevent"
 cmake --build build
 ```
-
-## Troubleshooting
-### Trying to use locally installed package after having configured to use conan
-- First, simply try to remove `build/CMakeCache.txt`, and rerun CMake as listed
-  in 
-  [the build guide using system package manager and pkg-config.](#if-all-dependencies-have-been-installed-via-system-package-manager)
-- If the build fails because CMake still finds the package built by conan
-  (whose path is prefixed with `$HOME/.conan2/`), remove
-  `~/.cmake/packages/<package-name>` (Unix) or
-  `HKEY_CURRENT_USER\Software\Kitware\CMake\Packages\<package-name>` (Windows),
-  substituting `<package-name>` with that of the package that's not supposed to be
-  found.
-  - To be more precise, in that path, there are some files whose contents is
-    the path to the library/package/$\dots$. Removing only the file that points
-    to the path with prefix `~/.conan2` is sufficient.
-  - The path just removed is CMake's [user package registry](https://cmake.org/cmake/help/v3.31/manual/cmake-packages.7.html#user-package-registry)
-    feature.
