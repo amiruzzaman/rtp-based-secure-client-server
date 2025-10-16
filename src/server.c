@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <event2/event.h>
 #include <event2/thread.h>
+#include <event2/util.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -20,8 +21,6 @@ struct read_event_arguments {
     struct event *self;
     struct sockaddr *recv_addr;
     socklen_t recv_addr_len;
-    evutil_socket_t socket;
-    size_t timeout_cnt;
     char read_buff[READ_BUFF_LEN];
 };
 static void read_callback(evutil_socket_t sock, short what, void *arg);
@@ -35,13 +34,12 @@ int main(void) {
         .sin6_family = AF_INET6,
     };
     struct read_event_arguments read_args = {
-        .recv_addr = &recv_addr,
+        .recv_addr = (struct sockaddr *)&recv_addr,
     };
     const struct addrinfo hints = {
         .ai_flags = AI_PASSIVE,
         .ai_family = AF_INET6,
         .ai_socktype = SOCK_DGRAM,
-        .ai_next = NULL,
     };
     struct addrinfo *server_info = NULL;
 
@@ -56,12 +54,12 @@ int main(void) {
         // complicated logics.
         struct sockaddr_storage *addr = (struct sockaddr_storage *)pa->ai_addr;
         socklen_t addr_size = sizeof(struct sockaddr_in6);
-        if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+        if ((sock = socket(addr->ss_family, SOCK_DGRAM, 0)) < 0) {
             perror(INFO "Retrying socket creation");
             continue;
         }
         // IPv4-mapped IPv6
-        {
+        if(addr->ss_family == AF_INET6){
             int nope = 0;
             if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &nope,
                            sizeof(int)) != 0) {
@@ -69,17 +67,25 @@ int main(void) {
                 continue;
             }
         }
+        // reuse address
+        {
+            int yep = 1;
+            if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yep,
+                           sizeof(int)) != 0) {
+                perror(INFO "Set reuse address error, retrying");
+                continue;
+            }
+        }
+        evutil_make_socket_nonblocking(sock);
         if ((ret = bind(sock, (struct sockaddr *)addr, addr_size)) != 0) {
             perror(INFO "Retrying socket creation");
             close(sock);
             continue;
         }
-        // TODO: report bind address
         char addr_str[INET6_ADDRSTRLEN];
         void *in_addr = &(((struct sockaddr_in6 *)addr)->sin6_addr);
         inet_ntop(AF_INET6, in_addr, addr_str, INET6_ADDRSTRLEN);
         printf(INFO "Bind socket to address %s\n", addr_str);
-        read_args.socket = sock;
         break;
     }
 
@@ -132,9 +138,21 @@ defer:
 static void read_callback(evutil_socket_t sock, short what, void *arg) {
     struct read_event_arguments *read_args = (struct read_event_arguments *)arg;
     assert(read_args != NULL);
-    ssize_t msglen = recvfrom(read_args->socket, read_args->read_buff,
-                          sizeof(read_args->read_buff), 0, read_args->recv_addr,
-                          &(read_args->recv_addr_len));
-    // TODO: we can create another socket here and `bind`.
-    printf(INFO "Received %.*s", (int)msglen, read_args->read_buff);
+    ssize_t msglen =
+        recvfrom(sock, read_args->read_buff, sizeof(read_args->read_buff), 0,
+                 read_args->recv_addr, &(read_args->recv_addr_len));
+
+    char addr_str[INET6_ADDRSTRLEN];
+    void *in_addr =
+        read_args->recv_addr->sa_family == AF_INET
+            ? &((struct sockaddr_in *)read_args->recv_addr)->sin_addr
+            : &((struct sockaddr_in6 *)read_args->recv_addr)->sin6_addr;
+    inet_ntop(read_args->recv_addr->sa_family, in_addr, addr_str,
+              INET6_ADDRSTRLEN);
+    if(read_args->read_buff[msglen - 1] == '\n') {
+        --msglen;
+    }
+    printf(INFO "Received \"%.*s\" from %s\n", (int)msglen, read_args->read_buff,
+           addr_str);
+    fflush(stdout);
 }
