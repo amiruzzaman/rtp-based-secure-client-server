@@ -33,6 +33,9 @@
     - [x] Define the methods
     - [x] Test
 
+## Some getter functions
+- [ ] Lovely.
+
 ## UDP server with libevent
 - [x] Event loop.
 - [ ] Signal handling to shut down more gracefully.

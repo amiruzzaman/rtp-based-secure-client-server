@@ -86,6 +86,29 @@ struct rtp_header {
      */
     struct rtp_ext ext;
 };
+// getters
+
+/**
+ * @note Return value ranges from 0 to 2, inclusive. Most likely 2.
+ */
+uint8_t rtp_header_get_version(const struct rtp_header *header);
+bool rtp_header_has_padding(const struct rtp_header *header);
+bool rtp_header_has_extension(const struct rtp_header *header);
+/**
+ * @note Return value ranges from 0 to 15, inclusive.
+ */
+uint8_t rtp_header_csrc_count(const struct rtp_header *header);
+bool rtp_header_has_marker(const struct rtp_header *header);
+uint8_t rtp_header_payload_type(const struct rtp_header *header);
+uint16_t rtp_header_get_sequence_number(const struct rtp_header *header);
+uint32_t rtp_header_get_timestamp(const struct rtp_header *header);
+uint32_t rtp_header_get_ssrc(const struct rtp_header *header);
+/**
+ * @note The array size can be retrieved from `rtp_header_get_csrc_count`
+ */
+const uint32_t* rtp_header_get_csrcs(const struct rtp_header *header);
+// TODO: get extensions
+
 /**
  * @brief The total size of the header in bytes, including extension if any.
  * @warn Do not pass in a null pointer.

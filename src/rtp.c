@@ -8,6 +8,46 @@
 
 #define REINTERPRET_CAST(type, lvalue) ((type *)(lvalue))
 
+uint8_t rtp_header_get_version(const struct rtp_header *header) {
+    return header->version;
+}
+
+bool rtp_header_has_padding(const struct rtp_header *header) {
+    return header->has_padding;
+}
+
+bool rtp_header_has_extension(const struct rtp_header *header) {
+    return header->has_extension;
+}
+
+uint8_t rtp_header_csrc_count(const struct rtp_header *header) {
+    return header->csrc_count;
+}
+
+bool rtp_header_has_marker(const struct rtp_header *header) {
+    return header->marker;
+}
+
+uint8_t rtp_header_payload_type(const struct rtp_header *header) {
+    return header->payload_type;
+}
+
+uint16_t rtp_header_get_sequence_number(const struct rtp_header *header) {
+    return header->seq_num;
+}
+
+uint32_t rtp_header_get_timestamp(const struct rtp_header *header) {
+    return header->timestamp;
+}
+
+uint32_t rtp_header_get_ssrc(const struct rtp_header *header) {
+    return header->ssrc;
+}
+
+const uint32_t* rtp_header_get_csrcs(const struct rtp_header *header) {
+    return header->csrcs;
+}
+
 size_t rtp_header_size(const struct rtp_header *header) {
     assert(header != NULL);
     // 12 octets at least, and then a number of 32-bit CSRCs, and then
