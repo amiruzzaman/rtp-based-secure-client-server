@@ -21,7 +21,7 @@ function(__find_libevent_create_import_target _target _import_loc _incl_dir)
         add_library(${_target} UNKNOWN IMPORTED)
         set_target_properties(${_target} PROPERTIES
             IMPORTED_LOCATION ${${_import_loc}}
-            INTERFACE_INCLUDE_DIRECTORIES ${_incl_dir})
+            INTERFACE_INCLUDE_DIRECTORIES ${${_incl_dir}})
     endif()
 endfunction()
 
@@ -29,7 +29,7 @@ macro(__find_libevent_find_component_library _component_var _component_name _dir
     find_library(${_component_var}
              NAMES
              ${_component_name}
-             PATH_SUFFIXES include
+             PATH_SUFFIXES lib
              HINTS
              ${_dir_hint})
     mark_as_advanced(${_component_var})
@@ -47,9 +47,11 @@ endif()
 find_path(Libevent_INCLUDE_DIR
          NAMES
          event2/event.h
+         PATH_SUFFIXES include
          HINTS
          ${PC_Libevent_INCLUDE_DIRS})
 mark_as_advanced(Libevent_INCLUDE_DIR)
+message("${Libevent_INCLUDE_DIR}")
 
 __find_libevent_find_component_library(Libevent_LIBRARY event PC_Libevent_LIBRARY_DIRS)
 __find_libevent_find_component_library(Libevent_core_LIBRARY event_core PC_Libevent_LIBRARY_DIRS)
@@ -58,7 +60,6 @@ __find_libevent_find_component_library(Libevent_openssl_LIBRARY event_openssl PC
 if(NOT WIN32)
     __find_libevent_find_component_library(Libevent_pthreads_LIBRARY event_pthreads PC_Libevent_LIBRARY_DIRS)
 endif()
-message("${Libevent_pthreads_LIBRARY}")
 
 # get version
 if(Libevent_INCLUDE_DIR)
@@ -92,11 +93,11 @@ find_package_handle_standard_args(Libevent
 # import target
 if(Libevent_FOUND)
     set(Libevent_INCLUDE_DIRS ${Libevent_INCLUDE_DIR})
-    __find_libevent_create_import_target(libevent::libevent Libevent_LIBRARY "${Libevent_INCLUDE_DIR}")
-    __find_libevent_create_import_target(libevent::core Libevent_core_LIBRARY "${Libevent_INCLUDE_DIR}")
-    __find_libevent_create_import_target(libevent::extra Libevent_extra_LIBRARY "${Libevent_INCLUDE_DIR}")
-    __find_libevent_create_import_target(libevent::openssl Libevent_openssl_LIBRARY "${Libevent_INCLUDE_DIR}")
+    __find_libevent_create_import_target(libevent::libevent Libevent_LIBRARY Libevent_INCLUDE_DIR)
+    __find_libevent_create_import_target(libevent::core Libevent_core_LIBRARY Libevent_INCLUDE_DIR)
+    __find_libevent_create_import_target(libevent::extra Libevent_extra_LIBRARY Libevent_INCLUDE_DIR)
+    __find_libevent_create_import_target(libevent::openssl Libevent_openssl_LIBRARY Libevent_INCLUDE_DIR)
     if(NOT WIN32)
-        __find_libevent_create_import_target(libevent::pthreads Libevent_pthreads_LIBRARY "${Libevent_INCLUDE_DIR}")
+        __find_libevent_create_import_target(libevent::pthreads Libevent_pthreads_LIBRARY Libevent_INCLUDE_DIR)
     endif()
 endif()

@@ -91,3 +91,28 @@ cmake -B build
 # -DCMAKE_PREFIX_PATH="non-standard/path/to/pc/file/of/libevent"
 cmake --build build
 ```
+
+## Troubleshooting
+### Nix-shell and language servers (specifically clangd)
+- Problem: even if the project successfully builds inside `nix-shell`, your
+  `clangd` (or whatever language server you use) setup might not be able to
+  detect some library headers (for example, `<event2/event.h>`).
+- Fix:
+  - Use `nix-shell dev-shell.nix` instead. Run the
+    [nix-shell build steps](#nix-shell) and build. And also launch your editor
+    in the same environment (that is, another session that's running
+    `nix-shell dev-shel.nix`).
+- Another possible fix:
+  1. Enter `nix-shell`.
+  2. `echo $NIXPKGS_CMAKE_PREFIX_PATH` and copy the output.
+    - Or any way to be able to save and read the value of
+      `$NIXPKGS_CMAKE_PREFIX_PATH` again after exiting nix-shell.
+  3. Exit `nix-shell`.
+  4. Supply `CMAKE_PREFIX_PATH` environment variable using the value copied.
+    - This is different from the instructions above.
+
+```bash
+CMAKE_PREFIX_PATH="copied-value" cmake -B build
+# now you can build outside of nix-shell also
+cmake --build build
+```
