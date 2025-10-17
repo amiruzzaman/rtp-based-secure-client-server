@@ -44,7 +44,7 @@ uint32_t rtp_header_get_ssrc(const struct rtp_header *header) {
     return header->ssrc;
 }
 
-const uint32_t* rtp_header_get_csrcs(const struct rtp_header *header) {
+const uint32_t *rtp_header_get_csrcs(const struct rtp_header *header) {
     return header->csrcs;
 }
 
@@ -52,10 +52,11 @@ size_t rtp_header_size(const struct rtp_header *header) {
     assert(header != NULL);
     // 12 octets at least, and then a number of 32-bit CSRCs, and then
     // optionally the extension.
-    return 12 + header->csrc_count * 4 +
-           // 16-bit profile id, 16-bit extension length, then 4 * 32-bit
-           // extension bytes
-           ((header->has_extension) ? (1 + header->ext.ext_len) * 4 : 0);
+    return (
+        size_t)(12 + header->csrc_count * 4 +
+                // 16-bit profile id, 16-bit extension length, then 4 * 32-bit
+                // extension bytes
+                ((header->has_extension) ? (1 + header->ext.ext_len) * 4 : 0));
 }
 
 size_t rtp_packet_size(const struct rtp_packet *packet) {
@@ -176,7 +177,7 @@ enum rtp_status rtp_packet_deserialize(struct rtp_packet *restrict packet,
     }
     read_size += buff_idx;
 
-    if(packet->header.has_extension) {
+    if (packet->header.has_extension) {
         ret = rtp_header_deserialize_extension_header(
             &packet->header, packlen - read_size, buff + read_size, &buff_idx);
         if (ret != STATUS_OK) {
@@ -243,7 +244,7 @@ enum rtp_status rtp_header_deserialize_pre_ext(
         // https://en.cppreference.com/w/c/language/bit_field.html
         uint8_t first_octet = buff[0];
         // get the 4 bits
-        header->csrc_count = (first_octet & (UINT8_MAX >> 4));
+        header->csrc_count = (uint8_t)(first_octet & 0b00001111);
         if (header->csrc_count > 15) {
             ret = STATUS_DESERIALIZE_CSRC_COUNT_TOO_LARGE;
             goto defer;
@@ -255,7 +256,7 @@ enum rtp_status rtp_header_deserialize_pre_ext(
         first_octet >>= 1;
         // at this point this only contains the last 2 bits
         assert((first_octet & 0b11111100) == 0);
-        header->version = first_octet;
+        header->version = (uint8_t)(first_octet & 0b11);
         if (header->version > 2) {
             ret = STATUS_DESERIALIZE_VERSION_TOO_LARGE;
             goto defer;
@@ -265,7 +266,7 @@ enum rtp_status rtp_header_deserialize_pre_ext(
 
     {
         uint8_t second_octet = buff[1];
-        header->payload_type = (second_octet & (UINT8_MAX >> 1));
+        header->payload_type = (uint8_t)(second_octet & (UINT8_MAX >> 1));
         second_octet >>= 7;
         // at this point this only contains the last bit
         assert((second_octet & UINT8_MAX << 1) == 0);
