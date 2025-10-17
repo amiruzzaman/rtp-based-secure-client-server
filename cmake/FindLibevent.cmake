@@ -51,7 +51,6 @@ find_path(Libevent_INCLUDE_DIR
          HINTS
          ${PC_Libevent_INCLUDE_DIRS})
 mark_as_advanced(Libevent_INCLUDE_DIR)
-message("${Libevent_INCLUDE_DIR}")
 
 __find_libevent_find_component_library(Libevent_LIBRARY event PC_Libevent_LIBRARY_DIRS)
 __find_libevent_find_component_library(Libevent_core_LIBRARY event_core PC_Libevent_LIBRARY_DIRS)
