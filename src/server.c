@@ -145,8 +145,8 @@ static void read_callback(evutil_socket_t sock, short what, void *arg) {
     char addr_str[INET6_ADDRSTRLEN];
     void *in_addr =
         read_args->recv_addr->sa_family == AF_INET
-            ? &((struct sockaddr_in *)read_args->recv_addr)->sin_addr
-            : &((struct sockaddr_in6 *)read_args->recv_addr)->sin6_addr;
+            ? (void *)&((struct sockaddr_in *)read_args->recv_addr)->sin_addr
+            : (void *)&((struct sockaddr_in6 *)read_args->recv_addr)->sin6_addr;
     inet_ntop(read_args->recv_addr->sa_family, in_addr, addr_str,
               INET6_ADDRSTRLEN);
     if (read_args->read_buff[msglen - 1] == '\n') {
