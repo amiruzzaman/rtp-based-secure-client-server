@@ -94,7 +94,8 @@ defer:
     return ret;
 }
 
-static void write_callback(evutil_socket_t sock, short what, void *arg) {
+static void write_callback(evutil_socket_t sock, [[maybe_unused]] short what,
+                           void *arg) {
     struct write_event_arguments *write_args =
         (struct write_event_arguments *)arg;
     assert(write_args != NULL);
