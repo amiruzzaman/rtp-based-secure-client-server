@@ -32,8 +32,10 @@ int main(void) {
     struct event *write_event = NULL;
     struct write_event_arguments write_args = {};
     struct addrinfo *server_info = NULL;
-    if ((ret = getaddrinfo("localhost", "4200", &hints, &server_info)) != 0) {
-        fprintf(stderr, ERROR "getaddrinfo: %s\n", gai_strerror(ret));
+
+    if ((ret = evutil_getaddrinfo("localhost", "4200", &hints, &server_info)) !=
+        0) {
+        fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
     }
     for (struct addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
@@ -41,28 +43,33 @@ int main(void) {
         if ((sock = socket(pa->ai_family, pa->ai_socktype, pa->ai_protocol)) <
             0) {
             perror(INFO "Retrying socket creation");
-            continue;
+            goto retry_bind;
         }
-        // reuse address
-        {
-            int yep = 1;
-            if ((ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yep,
-                                  sizeof(int))) != 0) {
-                perror(INFO "Set reuse address error, retrying");
-                continue;
-            }
+        if (evutil_make_listen_socket_reuseable(sock) != 0) {
+            printf(INFO "Making socket reuseable failed, retrying\n");
+            goto retry_bind;
         }
-        evutil_make_socket_nonblocking(sock);
+        if (evutil_make_listen_socket_reuseable_port(sock) != 0) {
+            printf(INFO "Making socket port-reuseable failed, retrying\n");
+            goto retry_bind;
+        }
+        if (evutil_make_socket_nonblocking(sock) != 0) {
+            printf(INFO "Making socket non-blocking failed, retrying\n");
+            goto retry_bind;
+        }
 
         char addr_str[INET6_ADDRSTRLEN];
         void *in_addr = &(((struct sockaddr_in *)addr)->sin_addr);
-        inet_ntop(AF_INET, in_addr, addr_str, INET_ADDRSTRLEN);
+        evutil_inet_ntop(AF_INET, in_addr, addr_str, INET_ADDRSTRLEN);
         printf(INFO "Bind socket to address %s\n", addr_str);
 
         write_args.send_addr = (struct sockaddr *)addr;
         write_args.send_addr_len = sizeof(struct sockaddr_in);
         break;
+    retry_bind:
+        evutil_closesocket(sock);
     }
+    
     // if error occurs
     if (sock < 0) {
         REPORT_ERRNO("socket");
@@ -86,10 +93,10 @@ int main(void) {
 
 defer:
     if (server_info) {
-        freeaddrinfo(server_info);
+        evutil_freeaddrinfo(server_info);
     }
     if (sock > -1) {
-        close(sock);
+        evutil_closesocket(sock);
     }
     return ret;
 }

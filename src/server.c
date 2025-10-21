@@ -43,8 +43,8 @@ int main(void) {
     };
     struct addrinfo *server_info = NULL;
 
-    if ((ret = getaddrinfo(NULL, "4200", &hints, &server_info)) != 0) {
-        fprintf(stderr, ERROR "getaddrinfo: %s\n", gai_strerror(ret));
+    if ((ret = evutil_getaddrinfo(NULL, "4200", &hints, &server_info)) != 0) {
+        fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
     }
     // get first server address available to bind, and bind
@@ -58,35 +58,32 @@ int main(void) {
             perror(INFO "Retrying socket creation");
             continue;
         }
-        // IPv4-mapped IPv6
-        if (addr->ss_family == AF_INET6) {
-            int nope = 0;
-            if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &nope,
-                           sizeof(int)) != 0) {
-                perror(INFO "Set socket option error, retrying");
-                continue;
-            }
+
+        if (evutil_make_listen_socket_reuseable(sock) != 0) {
+            printf(INFO "Making socket reuseable failed, retrying\n");
+            goto retry_bind;
         }
-        // reuse address
-        {
-            int yep = 1;
-            if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yep, sizeof(int)) !=
-                0) {
-                perror(INFO "Set reuse address error, retrying");
-                continue;
-            }
+        if (evutil_make_listen_socket_reuseable_port(sock) != 0) {
+            printf(INFO "Making socket port-reuseable failed, retrying\n");
+            goto retry_bind;
         }
-        evutil_make_socket_nonblocking(sock);
+        if (evutil_make_socket_nonblocking(sock) != 0) {
+            printf(INFO "Making socket non-blocking failed, retrying\n");
+            goto retry_bind;
+        }
+
         if ((ret = bind(sock, (struct sockaddr *)addr, addr_size)) != 0) {
             perror(INFO "Retrying socket creation");
-            close(sock);
+            evutil_closesocket(sock);
             continue;
         }
         char addr_str[INET6_ADDRSTRLEN];
         void *in_addr = &(((struct sockaddr_in6 *)addr)->sin6_addr);
-        inet_ntop(AF_INET6, in_addr, addr_str, INET6_ADDRSTRLEN);
+        evutil_inet_ntop(AF_INET6, in_addr, addr_str, INET6_ADDRSTRLEN);
         printf(INFO "Bind socket to address %s\n", addr_str);
         break;
+retry_bind:
+        evutil_closesocket(sock);
     }
 
     // if error occurs
@@ -120,7 +117,7 @@ int main(void) {
 defer:
     printf(INFO "Shutdown server\n");
     if (server_info) {
-        freeaddrinfo(server_info);
+        evutil_freeaddrinfo(server_info);
     }
     if (read_event) {
         event_free(read_event);
@@ -129,7 +126,7 @@ defer:
         event_base_free(base);
     }
     if (sock > -1) {
-        close(sock);
+        evutil_closesocket(sock);
     }
     libevent_global_shutdown();
     return ret;
