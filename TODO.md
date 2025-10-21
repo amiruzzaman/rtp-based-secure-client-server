@@ -34,7 +34,7 @@
     - [x] Test
 
 ## Some getter functions
-- [ ] Lovely.
+- [x] Lovely.
 
 ## UDP server with libevent
 - [x] Event loop.
