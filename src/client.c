@@ -1,4 +1,5 @@
 #include "log.h"
+#include "rtp.h"
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -38,7 +39,8 @@ int main(void) {
         fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
     }
-    for (struct evutil_addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
+    for (struct evutil_addrinfo *pa = server_info; pa != NULL;
+         pa = pa->ai_next) {
         struct sockaddr_in *addr = (struct sockaddr_in *)pa->ai_addr;
         if ((sock = socket(pa->ai_family, pa->ai_socktype, pa->ai_protocol)) <
             0) {
@@ -69,7 +71,7 @@ int main(void) {
     retry_bind:
         evutil_closesocket(sock);
     }
-    
+
     // if error occurs
     if (sock < 0) {
         REPORT_ERRNO("socket");
@@ -110,10 +112,38 @@ static void write_callback(evutil_socket_t sock, [[maybe_unused]] short what,
     // size_t line_len = 0;
     char *line = fgets(write_args->write_buff, WRITE_BUFF_LEN, stdin);
     if (line) {
+        // create an RTP packet.
+        // TODO: once we have an RTP session, we don't need to manually do this
+        struct rtp_packet packet = {
+            .header = {
+                .version = 2,
+                .has_padding = false,
+                .has_extension = false,
+                .csrc_count = 0,
+                .marker = false,
+                // "reserved" according to RFC 3551
+                .payload_type = 1,
+                // TODO: should be random
+                .seq_num = 2,
+                // TODO: clock
+                .timestamp = 1,
+                // TODO: should be random
+                .ssrc = 69,
+            },
+            .payload = {
+                .data_len = strlen(line),
+                .data = line,
+            },
+        };
+        size_t packet_len = rtp_packet_size(&packet);
+        uint8_t *payload = (uint8_t*)malloc(packet_len);
+        size_t fill_len = 0;
+        rtp_packet_serialize(&packet, packet_len, payload, &fill_len);
         ssize_t send_len =
-            sendto(sock, line, strlen(line), 0, write_args->send_addr,
+            sendto(sock, payload, packet_len, 0, write_args->send_addr,
                    write_args->send_addr_len);
         printf("Sent %zu bytes\n", send_len);
+        free(payload);
     } else if (feof(stdin)) {
         event_del(write_args->self);
     }

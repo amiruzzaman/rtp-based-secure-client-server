@@ -1,4 +1,5 @@
 #include "log.h"
+#include "rtp.h"
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -48,7 +49,8 @@ int main(void) {
         goto defer;
     }
     // get first server address available to bind, and bind
-    for (struct evutil_addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
+    for (struct evutil_addrinfo *pa = server_info; pa != NULL;
+         pa = pa->ai_next) {
         // handle both ipv4 and ipv6
         // TODO: we explicitly request only IPv6, so no need for a lot of these
         // complicated logics.
@@ -82,7 +84,7 @@ int main(void) {
         evutil_inet_ntop(AF_INET6, in_addr, addr_str, INET6_ADDRSTRLEN);
         printf(INFO "Bind socket to address %s\n", addr_str);
         break;
-retry_bind:
+    retry_bind:
         evutil_closesocket(sock);
     }
 
@@ -139,6 +141,10 @@ static void read_callback(evutil_socket_t sock, [[maybe_unused]] short what,
     ssize_t msglen =
         recvfrom(sock, read_args->read_buff, sizeof(read_args->read_buff), 0,
                  read_args->recv_addr, &(read_args->recv_addr_len));
+    if(msglen < 0) {
+        perror(ERROR "recvfrom");
+        return;
+    }
 
     char addr_str[INET6_ADDRSTRLEN];
     void *in_addr =
@@ -150,6 +156,13 @@ static void read_callback(evutil_socket_t sock, [[maybe_unused]] short what,
     if (read_args->read_buff[msglen - 1] == '\n') {
         --msglen;
     }
-    printf(INFO "Received \"%.*s\" from %s\n", (int)msglen,
-           read_args->read_buff, addr_str);
+
+    struct rtp_packet pack = {};
+    size_t read_len = 0;
+    rtp_packet_deserialize(&pack, (size_t)msglen,
+                           (uint8_t *)read_args->read_buff, &read_len);
+
+    printf(INFO "Received \"%.*s\" from %s\n", (int)pack.payload.data_len,
+           (char *)pack.payload.data, addr_str);
+    free(pack.payload.data);
 }
