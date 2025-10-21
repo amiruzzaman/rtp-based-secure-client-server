@@ -9,6 +9,9 @@ include(CMakeDependentOption)
 include(CheckLinkerFlag)
 include(CTest)
 
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED TRUE)
+
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 check_linker_flag(C -fsanitize=address RTP_MOD_LINKER_HAS_ASAN)

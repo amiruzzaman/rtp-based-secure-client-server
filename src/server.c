@@ -36,19 +36,19 @@ int main(void) {
     struct read_event_arguments read_args = {
         .recv_addr = (struct sockaddr *)&recv_addr,
     };
-    const struct addrinfo hints = {
+    const struct evutil_addrinfo hints = {
         .ai_flags = AI_PASSIVE,
         .ai_family = AF_INET6,
         .ai_socktype = SOCK_DGRAM,
     };
-    struct addrinfo *server_info = NULL;
+    struct evutil_addrinfo *server_info = NULL;
 
     if ((ret = evutil_getaddrinfo(NULL, "4200", &hints, &server_info)) != 0) {
         fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
     }
     // get first server address available to bind, and bind
-    for (struct addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
+    for (struct evutil_addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
         // handle both ipv4 and ipv6
         // TODO: we explicitly request only IPv6, so no need for a lot of these
         // complicated logics.

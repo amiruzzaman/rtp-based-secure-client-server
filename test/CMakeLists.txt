@@ -1,5 +1,7 @@
 # TODO: build tests
 
+find_package(Libevent REQUIRED)
+
 function(add_test_executable target)
     add_executable(${target})
     target_sources(${target}
@@ -10,6 +12,8 @@ function(add_test_executable target)
         PRIVATE
         compile_opts
         rtp
+        libevent::core
+        libevent::extra
     )
     string(TOUPPER ${target} target_upper)
     add_test(NAME ${target_upper}

@@ -1,5 +1,7 @@
 #include "rtp.h"
+#include "log.h"
 #include <assert.h>
+#include <event2/util.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -12,7 +14,9 @@
 
 void test_minimal_header(void) {
     uint32_t clk = (uint32_t)clock();
-    uint32_t ssrc_rand = arc4random_uniform(UINT32_MAX / 4);
+    // uint32_t ssrc_rand = arc4random_uniform(UINT32_MAX / 4);
+    uint32_t ssrc_rand = 0;
+    evutil_secure_rng_get_bytes(&ssrc_rand, sizeof(ssrc_rand));
     struct rtp_header test_header = {
         .version = 2,
         .has_padding = false,
@@ -65,7 +69,8 @@ void test_minimal_header(void) {
 
 void test_header_with_csrc(void) {
     uint32_t clk = (uint32_t)clock();
-    uint32_t ssrc_rand = arc4random_uniform(UINT32_MAX / 4);
+    uint32_t ssrc_rand = 0;
+    evutil_secure_rng_get_bytes(&ssrc_rand, sizeof(ssrc_rand));
     struct rtp_header test_header = {
         .version = 2,
         .has_padding = false,
@@ -115,7 +120,8 @@ void test_header_with_csrc(void) {
 
 void test_header_with_ext(void) {
     uint32_t clk = (uint32_t)clock();
-    uint32_t ssrc_rand = arc4random_uniform(UINT32_MAX / 4);
+    uint32_t ssrc_rand = 0;
+    evutil_secure_rng_get_bytes(&ssrc_rand, sizeof(ssrc_rand));
     struct rtp_header test_header = {
         .version = 2,
         .has_padding = false,
@@ -179,7 +185,9 @@ void test_header_with_ext(void) {
 
 void test_whole_packet_no_padding(void) {
     uint32_t clk = (uint32_t)clock();
-    uint32_t ssrc_rand = arc4random_uniform(UINT32_MAX / 4);
+    uint32_t ssrc_rand = 0;
+    evutil_secure_rng_get_bytes(&ssrc_rand, sizeof(ssrc_rand));
+    printf("%u\n", ssrc_rand);
     struct rtp_packet test_packet = {
         .header =
             {
@@ -228,6 +236,10 @@ void test_whole_packet_no_padding(void) {
 }
 
 int main(void) {
+    if(evutil_secure_rng_init() != 0) {
+        printf(ERROR "Cannot initialize RNG\n");
+        return -1;
+    }
     test_minimal_header();
     test_header_with_csrc();
     test_header_with_ext();

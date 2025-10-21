@@ -24,21 +24,21 @@ static void write_callback(evutil_socket_t sock, short what, void *arg);
 int main(void) {
     int ret = 0;
     int sock = -1;
-    const struct addrinfo hints = {
+    const struct evutil_addrinfo hints = {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_DGRAM,
     };
     struct event_base *base = NULL;
     struct event *write_event = NULL;
     struct write_event_arguments write_args = {};
-    struct addrinfo *server_info = NULL;
+    struct evutil_addrinfo *server_info = NULL;
 
     if ((ret = evutil_getaddrinfo("localhost", "4200", &hints, &server_info)) !=
         0) {
         fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
     }
-    for (struct addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
+    for (struct evutil_addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
         struct sockaddr_in *addr = (struct sockaddr_in *)pa->ai_addr;
         if ((sock = socket(pa->ai_family, pa->ai_socktype, pa->ai_protocol)) <
             0) {
