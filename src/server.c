@@ -135,7 +135,8 @@ defer:
     return ret;
 }
 
-static void read_callback(evutil_socket_t sock, short what, void *arg) {
+static void read_callback(evutil_socket_t sock, [[maybe_unused]] short what,
+                          void *arg) {
     struct read_event_arguments *read_args = (struct read_event_arguments *)arg;
     assert(read_args != NULL);
     ssize_t msglen =
