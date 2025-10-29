@@ -231,12 +231,12 @@ enum rtp_status rtp_header_deserialize_pre_ext(
     assert(header != NULL);
     // assert(bufflen >= RTP_HEADER_MIN_SIZE);
 
+    size_t curr_read_len = 0;
     enum rtp_status ret = STATUS_OK;
     if (bufflen < RTP_HEADER_MIN_SIZE) {
         ret = STATUS_BUFF_TOO_SMALL;
         goto defer;
     }
-    size_t curr_read_len = 0;
     // read rtp_header_serialize
     {
         // while we do specify the bit-sizes of the struct, it's not guaranteed
@@ -295,12 +295,12 @@ enum rtp_status rtp_header_deserialize_extension_header(
     const uint8_t trunc_buff[restrict bufflen], size_t *read_len) {
     assert(header != NULL);
 
+    size_t curr_idx = 0;
     enum rtp_status ret = STATUS_OK;
     if (bufflen < RTP_HEADER_EXT_HEADER_SIZE) {
         ret = STATUS_BUFF_TOO_SMALL;
         goto defer;
     }
-    size_t curr_idx = 0;
     header->ext.profile_id = *REINTERPRET_CAST(uint16_t, trunc_buff);
     curr_idx += 2;
     header->ext.ext_len = *REINTERPRET_CAST(uint16_t, trunc_buff + 2);
