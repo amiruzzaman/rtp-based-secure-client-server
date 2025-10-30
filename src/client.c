@@ -36,6 +36,8 @@ int main(void) {
 
     if ((ret = evutil_getaddrinfo("localhost", "4200", &hints, &server_info)) !=
         0) {
+        // Annex K
+        // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
         fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
     }
@@ -84,6 +86,8 @@ int main(void) {
     base = event_base_new();
     if (!base) {
         ret = -1;
+        // Annex K
+        // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
         fprintf(stderr, ERROR "Event base creation error\n");
         goto defer;
     }
@@ -132,7 +136,7 @@ static void write_callback(evutil_socket_t sock, [[maybe_unused]] short what,
             },
             .payload = {
                 .data_len = strlen(line),
-                .data = line,
+                .data = (uint8_t*)line,
             },
         };
         size_t packet_len = rtp_packet_size(&packet);
