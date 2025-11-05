@@ -35,7 +35,7 @@ int main(void) {
 
     if ((ret = evutil_getaddrinfo("localhost", "4200", &hints, &server_info)) !=
         0) {
-        // otherwise, clang-tidy wants us to use Annex K
+        // Annex K
         // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
         fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
@@ -85,7 +85,7 @@ int main(void) {
     base = event_base_new();
     if (!base) {
         ret = -1;
-        // otherwise, clang-tidy wants us to use Annex K
+        // Annex K
         // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
         fprintf(stderr, ERROR "Event base creation error\n");
         goto defer;

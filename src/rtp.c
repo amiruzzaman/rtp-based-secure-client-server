@@ -233,6 +233,7 @@ enum rtp_status rtp_header_deserialize_pre_ext(
 
     size_t curr_read_len = 0;
     enum rtp_status ret = STATUS_OK;
+    size_t curr_read_len = 0;
     if (bufflen < RTP_HEADER_MIN_SIZE) {
         ret = STATUS_BUFF_TOO_SMALL;
         goto defer;
