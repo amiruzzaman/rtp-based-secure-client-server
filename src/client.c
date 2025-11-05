@@ -2,7 +2,6 @@
 #include "rtp.h"
 #include <arpa/inet.h>
 #include <assert.h>
-#include <errno.h>
 #include <event2/event.h>
 #include <event2/util.h>
 #include <netinet/in.h>
@@ -136,7 +135,7 @@ static void write_callback(evutil_socket_t sock, [[maybe_unused]] short what,
             },
             .payload = {
                 .data_len = strlen(line),
-                .data = line,
+                .data = (uint8_t*)line,
             },
         };
         size_t packet_len = rtp_packet_size(&packet);

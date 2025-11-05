@@ -33,6 +33,21 @@
     - [x] Define the methods
     - [x] Test
 
+### RTP session
+- Since most of the header content of an RTP packet changes predictably (e.g.
+  timestamp) or doesn't change at all (e.g. version), it's best to have an
+  abstraction layer for this.
+- We use the same notation as in the paper: RTP session.
+- [ ] Struct `rtp_session`
+  - [ ] SSRC
+  - [ ] Timestamp
+  - [ ] Timestamp increment unit
+  - Version is assumed to be 2
+
+- [ ] `sendmsg` possibility?
+  - [ ] Basically, we don't need to concatenate all our different parts into
+    one large buffer.
+
 ## Some getter functions
 - [x] Lovely.
 

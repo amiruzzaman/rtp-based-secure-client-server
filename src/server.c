@@ -2,7 +2,6 @@
 #include "rtp.h"
 #include <arpa/inet.h>
 #include <assert.h>
-#include <errno.h>
 #include <event2/event.h>
 #include <event2/thread.h>
 #include <event2/util.h>
