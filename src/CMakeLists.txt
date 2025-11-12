@@ -10,10 +10,12 @@ target_sources(rtp
     PRIVATE
     rtp.c
     rtp_util.c
+    rtp_session.c
     PUBLIC
     rtp.h
     rtp_util.h
     rtp_err.h
+    rtp_session.h
 )
 target_link_libraries(rtp
     PUBLIC

@@ -38,15 +38,11 @@
   timestamp) or doesn't change at all (e.g. version), it's best to have an
   abstraction layer for this.
 - We use the same notation as in the paper: RTP session.
-- [ ] Struct `rtp_session`
-  - [ ] SSRC
-  - [ ] Timestamp
-  - [ ] Timestamp increment unit
-  - Version is assumed to be 2
 
-- [ ] `sendmsg` possibility?
-  - [ ] Basically, we don't need to concatenate all our different parts into
-    one large buffer.
+### SIP?
+- I need a way for 2 clients to exchange some info before initializing a session.
+- But do I just write SIP from scratch?
+- [ ] For now, let's implement a minimum version; not SIP, just send the SSRC out.
 
 ## Some getter functions
 - [x] Lovely.
