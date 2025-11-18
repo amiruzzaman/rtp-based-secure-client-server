@@ -2,53 +2,76 @@
 #define RTP_MOD_RTP_SESSION_H
 
 #include "rtp_err.h"
-#include "rtp_src.h"
+#include <event2/event.h>
 #include <netdb.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <time.h>
 
-/**
- * From RFC 3550: An association among a set of participants communicating with
- * RTP.
- */
+struct rtp_src_data {
+    // either IPv4 or IPv6.
+    struct sockaddr_storage addr;
+    // seq number is only 2 bytes long, so it will wrap around, unless the
+    // session is very, very short.
+    // Any time the sequence wraps around, increment by (largest seq num
+    // possible + 1) (that is, `UINT16_MAX + 1`)
+    size_t seq_cycles;
+    uint32_t ssrc;
+    uint16_t max_seq;
+    uint16_t base_seq;
+};
+
+struct rtp_data_buffer {
+    size_t len;
+    uint8_t buff[];
+};
+
+struct rtp_write_event_args {
+    struct rtp_session *self;
+    const struct rtp_data_buffer *write_buffer;
+    struct rtp_src_data *send_to_src_data;
+};
+
+struct rtp_read_event_args {
+    struct rtp_session *self;
+    struct rtp_data_buffer *read_buffer;
+};
+
 struct rtp_session {
+    // where we will send our packets to. Can be IPv4 or 6.
+    struct sockaddr_storage self_addr;
+    struct rtp_write_event_args write_ev_args;
+    struct rtp_read_event_args read_ev_args;
     size_t n_srcs;
-    // sources
-    struct rtp_src *srcs;
+    struct rtp_src_data *srcs;
     uint32_t self_ssrc;
-    // TODO: some libevent stuff?
+    evutil_socket_t sock;
+    // each session should only send 1 type of payload, because different
+    // payload types might have different timing increments.
+    uint8_t payload_type : 7;
+
+    struct event_base *ev_base;
+    struct event *read_event;
+    struct event *write_event;
 };
 
-struct rtp_session_exchange_ssrc_opts {
-    bool async;
-};
-
-#define RTP_MOD_SESSION_XCHG_OPT(...) (struct rtp_session_exchange_ssrc_opts) {\
-    .async = true,\
-    __VA_ARGS__\
-}
-
 /**
- * @brief Create a session with random SSRC and zero sources.
+ * @brief Generate random SSRC, store `self_addr`, create a socket and some
+ * event handlers to deal with data in/out of that socket.
+ * @note For the first argument `session`, simply zero-initialize an
+ * `rtp_session` and pass that in. This function does not allocate a session
+ * but only writes data to one.
+ * @return STATUS_OK on success. On failure: TODO what do we return?
  */
-struct rtp_session rtp_session_empty_create(unsigned seed);
-
+enum rtp_status rtp_session_create(struct rtp_session *session, unsigned seed,
+                                   struct sockaddr *self_addr);
 /**
- * @brief Send `self_ssrc` to the address stored inside `src`.
- * @note If configuration is needed, use `rtp_session_exchange_ssrc_base` and
- * pass in the options.
+ * @brief Self-explanatory. Run it when you're done with your session.
+ * @note This function doesn't assume `session` is dynamically allocated - if
+ * `session` was dynamically allocated, remember to free it.
  */
-enum rtp_status rtp_session_exchange_ssrc(struct rtp_src *src);
-
-/**
- * @brief Send `self_ssrc` to the address stored inside `src`, and allows for
- * configuration.
- * @note To pass in options, preferably use the RTP_MOD_SESSION_XCHG_OPT(...)
- * macro, which contains default values.
- */
-enum rtp_status rtp_session_exchange_ssrc_base(struct rtp_src *src,
-		struct rtp_session_exchange_ssrc_opts opts);
+void rtp_session_nuke(struct rtp_session *session);
 
 #endif
