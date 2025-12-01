@@ -2,71 +2,56 @@
 #define RTP_MOD_RTP_SESSION_H
 
 #include "rtp_err.h"
-#include <event2/event.h>
-#include <netdb.h>
 #include <stddef.h>
-#include <stdint.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <time.h>
 
-struct rtp_src_data {
-    // either IPv4 or IPv6.
-    struct sockaddr_storage addr;
-    // seq number is only 2 bytes long, so it will wrap around, unless the
-    // session is very, very short.
-    // Any time the sequence wraps around, increment by (largest seq num
-    // possible + 1) (that is, `UINT16_MAX + 1`)
-    size_t seq_cycles;
-    uint32_t ssrc;
-    uint16_t max_seq;
-    uint16_t base_seq;
-};
-
-struct rtp_data_buffer {
-    size_t len;
-    uint8_t buff[];
-};
-
-struct rtp_write_event_args {
-    struct rtp_session *self;
-    const struct rtp_data_buffer *write_buffer;
-    struct rtp_src_data *send_to_src_data;
-};
-
-struct rtp_read_event_args {
-    struct rtp_session *self;
-    struct rtp_data_buffer *read_buffer;
-};
+struct rtp_src_data;
 
 struct rtp_session {
-    // where we will send our packets to. Can be IPv4 or 6.
-    struct sockaddr_storage self_addr;
-    struct rtp_write_event_args write_ev_args;
-    struct rtp_read_event_args read_ev_args;
     size_t n_srcs;
     struct rtp_src_data *srcs;
     uint32_t self_ssrc;
-    evutil_socket_t sock;
+    // timeout in seconds. Default to 69.
+    uint8_t timeout_secs;
     // each session should only send 1 type of payload, because different
     // payload types might have different timing increments.
     uint8_t payload_type : 7;
-
-    struct event_base *ev_base;
-    struct event *read_event;
-    struct event *write_event;
 };
 
 /**
- * @brief Generate random SSRC, store `self_addr`, create a socket and some
- * event handlers to deal with data in/out of that socket.
+ * @brief Generate random SSRC and assign the supplied payload type. That's
+ * all. Default timeout is 69 seconds.
  * @note For the first argument `session`, simply zero-initialize an
  * `rtp_session` and pass that in. This function does not allocate a session
  * but only writes data to one.
- * @return STATUS_OK on success. On failure: TODO what do we return?
+ * @note For a good default seed, just get clock time (say, `clock_gettime`).
+ * @note Our convention is, `session`, if successfully created, now owns
+ * `self_addr`.
+ * @note Payload type should fit into 7 bits (that is, its value should not be
+ * larger than 127).
+ * @return STATUS_OK on success. And, for now, it cannot fail, but there might
+ * be some changes in the future that might create a fail condition.
  */
 enum rtp_status rtp_session_create(struct rtp_session *session, unsigned seed,
-                                   struct sockaddr *self_addr);
+                                   uint8_t payload_type);
+
+/**
+ * @brief Like @ref rtp_session_create, but instead of randomly generating an
+ * SSRC, just use the supplied `ssrc`.
+ */
+enum rtp_status rtp_session_create_with_ssrc(struct rtp_session *session,
+                                             uint16_t ssrc,
+                                             uint8_t payload_type);
+
+/**
+ * @brief Add a source. Simple as that.
+ * @todo What if there's already a source with the specified SSRC?
+ * @note You'd probably want to get the source data using another protocol,
+ * like SIP.
+ */
+enum rtp_status rtp_session_add_src(struct rtp_session *session,
+                                    struct rtp_src_data *data);
+
 /**
  * @brief Self-explanatory. Run it when you're done with your session.
  * @note This function doesn't assume `session` is dynamically allocated - if

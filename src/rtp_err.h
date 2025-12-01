@@ -10,8 +10,11 @@ enum rtp_status : uint8_t {
     STATUS_MALLOC_FAILED,                    // self-explanatory
     STATUS_DESERIALIZE_CSRC_COUNT_TOO_LARGE, // CSRC count larger than 15
     STATUS_DESERIALIZE_VERSION_TOO_LARGE,    // version larger than 2
-    STATUS_NO_EXT, // trying to deserialize extension of a packet without
-                   // extension.
+    STATUS_NO_EXT,       // trying to deserialize extension of a packet without
+                         // extension.
+    STATUS_EV_BASE_FAIL, // failure to create an `event_base`. End-user
+                         // shouldn't have to worry about this, but it makes
+                         // tracing down defects in the library easier.
 };
 
 const char *rtp_status_summarize(enum rtp_status status);
