@@ -1,8 +1,10 @@
 #include "rtp_session.h"
 #include "rtp_err.h"
+#include "rtp_src.h"
 #include <assert.h>
 #include <event2/event.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct rtp_data_buffer {
     size_t len;
@@ -56,10 +58,36 @@ enum rtp_status rtp_session_create_with_ssrc(struct rtp_session *session,
     assert(payload_type < 128);
     enum rtp_status ret = STATUS_OK;
 
+    session->srcs_cap = 0;
     session->n_srcs = 0;
     session->srcs = nullptr;
     session->self_ssrc = ssrc;
     session->payload_type = payload_type;
 
+    return ret;
+}
+
+enum rtp_status rtp_session_add_src(struct rtp_session *session,
+                                    struct rtp_src_data *data) {
+    assert(session != nullptr);
+    assert(data != nullptr);
+
+    enum rtp_status ret = STATUS_OK;
+    // resize array if needed
+    if(session->n_srcs == session->srcs_cap) {
+        session->srcs_cap = (session->srcs_cap == 0) ? 2 :
+            session->srcs_cap * 2;
+        struct rtp_src_data **new_buff = (struct rtp_src_data**)malloc(
+                sizeof(void*) * session->srcs_cap);
+        if(new_buff == nullptr) {
+            ret = STATUS_MALLOC_FAILED;
+            goto defer;
+        }
+        memcpy(new_buff, session->srcs, sizeof(void*) * session->n_srcs);
+    }
+
+    session->srcs[session->n_srcs++] = data;
+
+defer:
     return ret;
 }

@@ -2,14 +2,16 @@
 #define RTP_MOD_RTP_SESSION_H
 
 #include "rtp_err.h"
+#include "rtp_src.h"
 #include <stddef.h>
+#include <stdint.h>
 #include <time.h>
 
-struct rtp_src_data;
-
 struct rtp_session {
+    // srcs is a dynamic array
     size_t n_srcs;
-    struct rtp_src_data *srcs;
+    size_t srcs_cap;
+    struct rtp_src_data **srcs;
     uint32_t self_ssrc;
     // timeout in seconds. Default to 69.
     uint8_t timeout_secs;
@@ -58,5 +60,22 @@ enum rtp_status rtp_session_add_src(struct rtp_session *session,
  * `session` was dynamically allocated, remember to free it.
  */
 void rtp_session_nuke(struct rtp_session *session);
+
+/**
+ * @brief Create a source using the specified address.
+ * @param addr_len Length of address string.
+ * @param addr In the form of "addr:port"; e.g. "127.0.0.1:6969".
+ */
+enum rtp_status rtp_src_create(struct rtp_src_data *src, size_t addr_len,
+        char addr[addr_len]);
+
+// TODO: async version accepts an event handler and a callback.
+
+/**
+ * @brief Self-explanatory.
+ * @warn If the specified src has been added to an rtp session, do NOT manually
+ * call this function, as the rtp session will handle this by itself.
+ */
+void rtp_src_nuke(struct rtp_src_data *src);
 
 #endif
