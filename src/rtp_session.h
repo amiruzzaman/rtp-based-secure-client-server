@@ -3,6 +3,7 @@
 
 #include "rtp_err.h"
 #include "rtp_src.h"
+#include "rtp_util.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
@@ -66,8 +67,8 @@ void rtp_session_nuke(struct rtp_session *session);
  * @param addr_len Length of address string.
  * @param addr In the form of "addr:port"; e.g. "127.0.0.1:6969".
  */
-enum rtp_status rtp_src_create(struct rtp_src_data *src, size_t addr_len,
-        char addr[addr_len]);
+enum rtp_status rtp_src_create(struct rtp_src_data *src,
+        struct rtp_str_view addr);
 
 // TODO: async version accepts an event handler and a callback.
 
