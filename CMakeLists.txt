@@ -16,6 +16,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 check_linker_flag(C -fsanitize=address RTP_MOD_LINKER_HAS_ASAN)
 check_linker_flag(C -fsanitize=undefined RTP_MOD_LINKER_HAS_UBSAN)
+option(BUILD_EXAMPLES "Whether to build the files in examples/" ON)
 cmake_dependent_option(RTP_MOD_LINK_ASAN
     "Whether to link with AddressSanitizer"
     ON
@@ -45,9 +46,17 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
         "-Wall;-Wextra;-Wconversion;-Wnull-dereference;-Wformat=2;-Wno-missing-braces")
 endif()
 
-add_executable(server)
-add_executable(client)
+add_library(ld_libs INTERFACE)
+find_package(Libevent REQUIRED)
+target_link_libraries(ld_libs INTERFACE
+    libevent::core
+    libevent::extra
+    libevent::pthreads)
+
 add_subdirectory(src)
 if(BUILD_TESTING)
     add_subdirectory(test)
+endif()
+if(BUILD_EXAMPLES)
+  add_subdirectory(examples)
 endif()

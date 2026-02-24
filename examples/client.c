@@ -1,4 +1,3 @@
-#include "log.h"
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -37,33 +36,33 @@ int main(void) {
         0) {
         // otherwise, clang-tidy wants us to use Annex K
         // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
-        fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
+        fprintf(stderr, "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
     }
     for (struct evutil_addrinfo *pa = server_info; pa != NULL; pa = pa->ai_next) {
         struct sockaddr_in *addr = (struct sockaddr_in *)pa->ai_addr;
         if ((sock = socket(pa->ai_family, pa->ai_socktype, pa->ai_protocol)) <
             0) {
-            perror(INFO "Retrying socket creation");
+            perror("Retrying socket creation");
             goto retry_bind;
         }
         if (evutil_make_listen_socket_reuseable(sock) != 0) {
-            printf(INFO "Making socket reuseable failed, retrying\n");
+            printf("Making socket reuseable failed, retrying\n");
             goto retry_bind;
         }
         if (evutil_make_listen_socket_reuseable_port(sock) != 0) {
-            printf(INFO "Making socket port-reuseable failed, retrying\n");
+            printf("Making socket port-reuseable failed, retrying\n");
             goto retry_bind;
         }
         if (evutil_make_socket_nonblocking(sock) != 0) {
-            printf(INFO "Making socket non-blocking failed, retrying\n");
+            printf("Making socket non-blocking failed, retrying\n");
             goto retry_bind;
         }
 
         char addr_str[INET6_ADDRSTRLEN];
         void *in_addr = &(((struct sockaddr_in *)addr)->sin_addr);
         evutil_inet_ntop(AF_INET, in_addr, addr_str, INET_ADDRSTRLEN);
-        printf(INFO "Bind socket to address %s\n", addr_str);
+        printf("Bind socket to address %s\n", addr_str);
 
         write_args.send_addr = (struct sockaddr *)addr;
         write_args.send_addr_len = sizeof(struct sockaddr_in);
@@ -74,10 +73,12 @@ int main(void) {
     
     // if error occurs
     if (sock < 0) {
-        REPORT_ERRNO("socket");
+        perror("socket");
+        goto defer;
     }
     if (ret != 0) {
-        REPORT_ERRNO("DEAD");
+        perror("DEAD");
+        goto defer;
     }
 
     // initialize write event
@@ -86,7 +87,7 @@ int main(void) {
         ret = -1;
         // otherwise, clang-tidy wants us to use Annex K
         // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
-        fprintf(stderr, ERROR "Event base creation error\n");
+        fprintf(stderr, "Event base creation error\n");
         goto defer;
     }
     write_event = event_new(base, sock, EV_WRITE | EV_PERSIST, write_callback,

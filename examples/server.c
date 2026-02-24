@@ -1,4 +1,3 @@
-#include "log.h"
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -46,7 +45,7 @@ int main(void) {
     if ((ret = evutil_getaddrinfo(NULL, "4200", &hints, &server_info)) != 0) {
         // otherwise, clang-tidy wants us to use Annex K
         // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
-        fprintf(stderr, ERROR "getaddrinfo: %s\n", evutil_gai_strerror(ret));
+        fprintf(stderr, "getaddrinfo: %s\n", evutil_gai_strerror(ret));
         goto defer;
     }
     // get first server address available to bind, and bind
@@ -57,32 +56,32 @@ int main(void) {
         struct sockaddr_storage *addr = (struct sockaddr_storage *)pa->ai_addr;
         socklen_t addr_size = sizeof(struct sockaddr_in6);
         if ((sock = socket(addr->ss_family, SOCK_DGRAM, 0)) < 0) {
-            perror(INFO "Retrying socket creation");
+            perror("Retrying socket creation");
             continue;
         }
 
         if (evutil_make_listen_socket_reuseable(sock) != 0) {
-            printf(INFO "Making socket reuseable failed, retrying\n");
+            printf("Making socket reuseable failed, retrying\n");
             goto retry_bind;
         }
         if (evutil_make_listen_socket_reuseable_port(sock) != 0) {
-            printf(INFO "Making socket port-reuseable failed, retrying\n");
+            printf("Making socket port-reuseable failed, retrying\n");
             goto retry_bind;
         }
         if (evutil_make_socket_nonblocking(sock) != 0) {
-            printf(INFO "Making socket non-blocking failed, retrying\n");
+            printf("Making socket non-blocking failed, retrying\n");
             goto retry_bind;
         }
 
         if ((ret = bind(sock, (struct sockaddr *)addr, addr_size)) != 0) {
-            perror(INFO "Retrying socket creation");
+            perror("Retrying socket creation");
             evutil_closesocket(sock);
             continue;
         }
         char addr_str[INET6_ADDRSTRLEN];
         void *in_addr = &(((struct sockaddr_in6 *)addr)->sin6_addr);
         evutil_inet_ntop(AF_INET6, in_addr, addr_str, INET6_ADDRSTRLEN);
-        printf(INFO "Bind socket to address %s\n", addr_str);
+        printf("Bind socket to address %s\n", addr_str);
         break;
 retry_bind:
         evutil_closesocket(sock);
@@ -90,10 +89,12 @@ retry_bind:
 
     // if error occurs
     if (sock < 0) {
-        REPORT_ERRNO("socket");
+        perror("socket");
+        goto defer;
     }
     if (ret != 0) {
-        REPORT_ERRNO("bind");
+        perror("bind");
+        goto defer;
     }
 
     // initialize read event
@@ -102,7 +103,7 @@ retry_bind:
         ret = -1;
         // otherwise, clang-tidy wants us to use Annex K
         // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
-        fprintf(stderr, ERROR "Event base creation error\n");
+        fprintf(stderr, "Event base creation error\n");
         goto defer;
     }
     // TODO: install a signal handler or some `atexit` functions to clean up
@@ -119,7 +120,7 @@ retry_bind:
     // event_base_loop(base, EVLOOP_NONBLOCK);
 
 defer:
-    printf(INFO "Shutdown server\n");
+    printf("Shutdown server\n");
     if (server_info) {
         evutil_freeaddrinfo(server_info);
     }
@@ -154,6 +155,6 @@ static void read_callback(evutil_socket_t sock, [[maybe_unused]] short what,
     if (read_args->read_buff[msglen - 1] == '\n') {
         --msglen;
     }
-    printf(INFO "Received \"%.*s\" from %s\n", (int)msglen,
+    printf("Received \"%.*s\" from %s\n", (int)msglen,
            read_args->read_buff, addr_str);
 }
